@@ -28,7 +28,9 @@ Some points are configurables using environment variables
 
 ### RaspDAC pinout
 
-![RaspDAC pinout](https://github.com/vinymeuh/radiogagad/blob/master/public/I-SABRE-V3_FR_1_1.jpg)
+![RaspDAC pinout](https://github.com/vinymeuh/radiogagad/blob/master/public/audiophonics-i-sabre-v4-dac-es9023-tcxo-raspberry-pi-3-b-pi-3-b-pi-2-a-b-i2s.jpg)
+
+![RaspDAC pinout schema](https://github.com/vinymeuh/radiogagad/blob/master/public/I-SABRE-V3_FR_1_1.jpg)
 
 ### Power Button
 
