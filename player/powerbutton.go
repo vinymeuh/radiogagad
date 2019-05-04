@@ -5,6 +5,7 @@ package player
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -17,7 +18,6 @@ const (
 	GPIO_BOOTOK        = "GPIO22"
 	GPIO_SHUTDOWN      = "GPIO17"
 	GPIO_SOFT_SHUTDOWN = "GPIO4"
-	CMD_SHUTDOWN       = "/sbin/shutdown -h -P now"
 )
 
 // PowerButton is responsible to start a system shutdown when button is fired
@@ -47,12 +47,20 @@ func PowerButton(msgch chan string) {
 		return
 	}
 
+	// poweroff for Alpine Linux, shutdown for Raspbian
+	var CmdShutdown string
+	if _, err := os.Stat("/sbin/shutdown"); os.IsNotExist(err) {
+		CmdShutdown = "poweroff"
+	} else {
+		CmdShutdown = "/sbin/shutdown -h -P now"
+	}
+	msgch <- fmt.Sprintf("Shutdown command is '%s'", CmdShutdown)
+
 	go func() {
 		msgch <- "Power button successfully setup"
 		for pinShutdown.WaitForEdge(-1) {
 			msgch <- "Power button fired"
-			msgch <- fmt.Sprintf("Running command '%s'", CMD_SHUTDOWN)
-			cmdA := strings.Split(CMD_SHUTDOWN, " ")
+			cmdA := strings.Split(CmdShutdown, " ")
 			cmd := exec.Command(cmdA[0], cmdA[1:]...)
 			cmd.Stdout = nil
 			cmd.Stderr = nil
