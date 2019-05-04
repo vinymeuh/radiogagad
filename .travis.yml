@@ -5,6 +5,13 @@ env:
 
 go:
 - 1.12.x
-- master
 
-script: make build
+env:
+  matrix:
+    - TARGET="build"
+    - TARGET="buildarm7"
+    - TARGET="test"
+script: make $TARGET
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
