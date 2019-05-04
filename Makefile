@@ -36,6 +36,7 @@ coverage: ## Show test coverage
 
 help: ## Show Help
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@exit 1
 
 test: ## Run tests
 	go test -race -coverprofile=coverage.txt -covermode=atomic ./...

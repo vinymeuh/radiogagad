@@ -5,13 +5,11 @@ go:
 
 env:
   - GO111MODULE=on
-  
-matrix:
-  - TARGET="build"
-  - TARGET="buildarm7"
-  - TARGET="test"
 
-script: make $TARGET
+script: 
+  - make test
+  - make build
+  - make buildarm7
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
