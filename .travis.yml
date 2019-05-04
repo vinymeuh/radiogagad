@@ -1,14 +1,16 @@
 language: go
 
 go:
-- 1.12.x
+  - 1.12.x
 
 env:
-- GO111MODULE=on
-  matrix:
-    - TARGET="build"
-    - TARGET="buildarm7"
-    - TARGET="test"
+  - GO111MODULE=on
+  
+matrix:
+  - TARGET="build"
+  - TARGET="buildarm7"
+  - TARGET="test"
+
 script: make $TARGET
 
 after_success:
