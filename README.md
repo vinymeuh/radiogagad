@@ -2,6 +2,9 @@
 
 [![Build Status](https://travis-ci.org/vinymeuh/radiogagad.svg?branch=master)](https://travis-ci.org/vinymeuh/radiogagad)
 [![Go Report Card](https://goreportcard.com/badge/github.com/vinymeuh/radiogagad)](https://goreportcard.com/report/github.com/vinymeuh/radiogagad)
+[![codecov](https://codecov.io/gh/vinymeuh/radiogagad/branch/master/graph/badge.svg)](https://codecov.io/gh/vinymeuh/radiogagad)
+
+
 
 ## Build and install
 
