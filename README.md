@@ -13,7 +13,8 @@ make buildarm7
 
 Install by simply copy the binary under ```/usr/local/bin``` and setup the service for the service manager used by the distribution
 
-* For systemd: [radiogagad.service](https://github.com/vinymeuh/radiogagad/blob/master/radiogagad.service)
+* For systemd: [radiogagad.service](https://github.com/vinymeuh/radiogagad/blob/master/radiogagad.service.systemd)
+* For OpenRC: [radiogagad.service](https://github.com/vinymeuh/radiogagad/blob/master/radiogagad.service.openrc)
 
 ## Configuration
 

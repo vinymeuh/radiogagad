@@ -1,0 +1,33 @@
+#!/sbin/openrc-run
+
+# init.d file for radiogagad
+
+NAME=radiogagad
+DAEMON=/usr/local/bin/radiogagad
+PID=/var/run/radiogagad.pid
+LOGFILE=/var/log/radiogagad/radiogagad.log
+
+depend() {
+    need net
+    need localmount
+    use mpd
+}
+
+
+start_pre() {
+    checkpath --directory $(dirname ${LOGFILE})
+}
+
+start() {
+    ebegin "Starting ${NAME}"
+    start-stop-daemon  --background --start --exec ${DAEMON} \
+        --env RGGD_STARTUP_PLAYLISTS=${RGGD_STARTUP_PLAYLISTS} \
+        --make-pidfile --pidfile ${PID} -1 ${LOGFILE} -2 ${LOGFILE}
+    eend $?
+}
+
+stop() {
+	ebegin "Stopping ${NAME}"
+    start-stop-daemon --stop --pidfile ${PID}
+	eend $?
+}
