@@ -1,9 +1,10 @@
 # radiogagad - the daemon inside my RaspDAC
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Release](https://img.shields.io/github/release/vinymeuh/radiogagad.svg)](https://github.com/vinymeuh/radiogagad/releases/latest)
 [![Build Status](https://travis-ci.org/vinymeuh/radiogagad.svg?branch=master)](https://travis-ci.org/vinymeuh/radiogagad)
-[![Go Report Card](https://goreportcard.com/badge/github.com/vinymeuh/radiogagad)](https://goreportcard.com/report/github.com/vinymeuh/radiogagad)
 [![codecov](https://codecov.io/gh/vinymeuh/radiogagad/branch/master/graph/badge.svg)](https://codecov.io/gh/vinymeuh/radiogagad)
-
+[![Go Report Card](https://goreportcard.com/badge/github.com/vinymeuh/radiogagad)](https://goreportcard.com/report/github.com/vinymeuh/radiogagad)
 
 
 ## Build and install
@@ -32,9 +33,9 @@ Some points are configurables using environment variables
 
 ### RaspDAC pinout
 
-![RaspDAC pinout](https://github.com/vinymeuh/radiogagad/blob/master/public/audiophonics-i-sabre-v4-dac-es9023-tcxo-raspberry-pi-3-b-pi-3-b-pi-2-a-b-i2s.jpg)
+![RaspDAC pinout](https://github.com/vinymeuh/radiogagad/blob/master/assets/audiophonics-i-sabre-v4-dac-es9023-tcxo-raspberry-pi-3-b-pi-3-b-pi-2-a-b-i2s.jpg)
 
-![RaspDAC pinout schema](https://github.com/vinymeuh/radiogagad/blob/master/public/I-SABRE-V3_FR_1_1.jpg)
+![RaspDAC pinout schema](https://github.com/vinymeuh/radiogagad/blob/master/assets/I-SABRE-V3_FR_1_1.jpg)
 
 ### Power Button
 
