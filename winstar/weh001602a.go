@@ -8,7 +8,7 @@
 // So the code should stay readable and easily comparable with Winstar specifications.
 //
 // This file contains the heart of the beast:
-//  - strucutre definition for the driver and constants
+//  - structure definition for the driver and constants
 //  - low level functions to send command or data to the hardware
 
 package winstar

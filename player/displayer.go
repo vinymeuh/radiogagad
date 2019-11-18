@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vinymeuh/radiogagad/drivers/winstar"
+	"github.com/vinymeuh/radiogagad/winstar"
 )
 
 func Displayer(mpdinfo chan MPDInfo, stopscr chan struct{}, clrscr *sync.WaitGroup, msgch chan string) {
