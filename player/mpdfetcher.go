@@ -10,11 +10,13 @@ import (
 	"github.com/vinymeuh/radiogagad/mpd"
 )
 
+// MPDInfo is the format of messages send by MPDFetcher to Displayer
 type MPDInfo struct {
 	*mpd.Status
 	*mpd.CurrentSong
 }
 
+// MPDFetcher retrieves messages from the MPD daemon and writes them in a channel as a MPDInfo structure
 func MPDFetcher(addr string, mpdinfo chan MPDInfo, msgch chan string) {
 	var previous mpd.CurrentSong
 	for {

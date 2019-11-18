@@ -11,6 +11,7 @@ import (
 	"github.com/vinymeuh/radiogagad/winstar"
 )
 
+// Displayer manages the OLED display, mainly showing MPD messages received from MPDFetcher
 func Displayer(mpdinfo chan MPDInfo, stopscr chan struct{}, clrscr *sync.WaitGroup, msgch chan string) {
 	lcd := winstar.Display()
 	clrscr.Add(1)

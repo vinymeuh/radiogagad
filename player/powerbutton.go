@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	GPIO_BOOTOK        = "GPIO22"
-	GPIO_SHUTDOWN      = "GPIO17"
-	GPIO_SOFT_SHUTDOWN = "GPIO4"
+	gpioBOOTOK   = "GPIO22"
+	gpioSHUTDOWN = "GPIO17"
+	//gpioSOFT_SHUTDOWN = "GPIO4" // for reference, not used
 )
 
 // PowerButton is responsible to start a system shutdown when button is fired
@@ -27,7 +27,7 @@ func PowerButton(msgch chan string) {
 		return
 	}
 
-	pinBootOk := gpioreg.ByName(GPIO_BOOTOK)
+	pinBootOk := gpioreg.ByName(gpioBOOTOK)
 	if pinBootOk == nil {
 		msgch <- "Failed to find pinBootOk"
 		return
@@ -37,7 +37,7 @@ func PowerButton(msgch chan string) {
 		return
 	}
 
-	pinShutdown := gpioreg.ByName(GPIO_SHUTDOWN)
+	pinShutdown := gpioreg.ByName(gpioSHUTDOWN)
 	if pinShutdown == nil {
 		msgch <- "Failed to find pinShutdown"
 		return

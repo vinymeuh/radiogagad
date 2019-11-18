@@ -11,13 +11,13 @@ import (
 )
 
 const (
-	STARTUP_MAX_RETRIES = 10
-	STARTUP_RETRY_DELAY = 2
+	startupMaxRetries        = 10
+	startupRetryDelaySeconds = 2
 )
 
 // Starter loads and starts playing a playlist
 // In case of the MPD server is not responding, retry for a maximum of
-// STARTUP_MAX_RETRIES spaced by STARTUP_RETRY_DELAY seconds.
+// startupMaxRetries spaced by startupRetryDelaySeconds seconds.
 func Starter(address string, playlists []string, msgch chan string) {
 	var (
 		mpc *mpd.Client
@@ -30,13 +30,13 @@ func Starter(address string, playlists []string, msgch chan string) {
 			break
 		}
 		msgch <- fmt.Sprintf("MPD server not responding: %s", err)
-		msgch <- fmt.Sprintf("Waits %ds before retry", STARTUP_RETRY_DELAY)
+		msgch <- fmt.Sprintf("Waits %ds before retry", startupRetryDelaySeconds)
 		retry++
-		if retry > STARTUP_MAX_RETRIES {
-			msgch <- fmt.Sprintf("Unable to contact MPD server after %d retries, we give up", STARTUP_MAX_RETRIES)
+		if retry > startupMaxRetries {
+			msgch <- fmt.Sprintf("Unable to contact MPD server after %d retries, we give up", startupMaxRetries)
 			return
 		}
-		time.Sleep(STARTUP_RETRY_DELAY * time.Second)
+		time.Sleep(startupRetryDelaySeconds * time.Second)
 	}
 
 	for _, playlist := range playlists {
