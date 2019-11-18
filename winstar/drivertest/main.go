@@ -9,7 +9,7 @@ package main
 import (
 	"time"
 
-	"github.com/vinymeuh/radiogagad/drivers/winstar"
+	"github.com/vinymeuh/radiogagad/winstar"
 )
 
 func main() {
