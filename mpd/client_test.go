@@ -4,117 +4,24 @@
 package mpd
 
 import (
-	"bytes"
-	"fmt"
-	"io"
 	"net"
-	"regexp"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
-func (s CurrentSong) String() string {
-	return fmt.Sprintf("file: %s\nId: %d\nName: %s\nPos: %d\nTime: %d\nTitle: %s\n",
-		s.File, s.ID, s.Name, s.Pos, s.Time, s.Title)
-}
+func TestConnections(t *testing.T) {
+	server, client := net.Pipe()
+	go mockMPDServer(t, server)
 
-var currentSongTestData = CurrentSong{
-	File:  "http://novazz.ice.infomaniak.ch/novazz-128.mp3",
-	ID:    1,
-	Name:  "novazz",
-	Pos:   0,
-	Time:  0,
-	Title: "",
-}
+	if _, err := NewClient("localhost:6600", client); err != nil {
+		t.Fatalf("connection to 'localhost:6600' must pass")
+	}
 
-func (s Status) String() string {
-	return fmt.Sprintf("audio: %s\nbitrate: %d\nduration: %d\nelapsed: %f\nerror: %s\nplaylist: %d\nstate: %s\nsong: %d\nsongid: %d\n",
-		s.Audio, s.Bitrate, s.Duration, s.Elapsed, s.Error, s.Playlist, s.State, s.Song, s.Songid)
-}
-
-var statusTestData = Status{
-	Playlist: 17,
-	State:    "play",
-	Song:     0,
-	Songid:   2,
-	Elapsed:  2507.560,
-	Duration: 600,
-	Bitrate:  128,
-	Audio:    "44100:16:2",
-	Error:    "",
-}
-
-func (s Stats) String() string {
-	return fmt.Sprintf("artists: %d\nalbums: %d\ndb_playtime: %d\ndb_update: %d\nplaytime: %d\nsongs: %d\nuptime: %d\n",
-		s.Artists, s.Albums, s.DBplaytime, s.DBupdate, s.Playtime, s.Songs, s.Uptime)
-}
-
-var statsTestData = Stats{
-	Artists:    100,
-	Albums:     110,
-	DBplaytime: 380000,
-	DBupdate:   1550336499,
-	Playtime:   400,
-	Songs:      1500,
-	Uptime:     500,
-}
-
-func mockMPDServer(t *testing.T, server net.Conn) {
-	fmt.Fprintln(server, "OK MPD 0.19.0")
-	go mockMPDHandleConnection(t, server)
-}
-
-func mockMPDHandleConnection(t *testing.T, conn net.Conn) {
-	var simpleCommands = regexp.MustCompile(`^(clearerror|ping|next|previous|stop)\r\n`)
-	var pauseCommand = regexp.MustCompile(`^pause\s+(0|1)\r\n`)
-	var playCommand = regexp.MustCompile(`^(play|playid)\s+(-1|\d+)\r\n`)
-	var loadCommand = regexp.MustCompile(`^load\s+(\w+)\r\n`)
-	var statusCommand = regexp.MustCompile(`^status\r\n`)
-	var statsCommand = regexp.MustCompile(`^stats\r\n`)
-	var currentSongCommand = regexp.MustCompile(`^currentsong\r\n`)
-
-	buf := make([]byte, 4096)
-	for {
-		_, err := conn.Read(buf)
-		if err != nil {
-			if err != io.EOF {
-				fmt.Println("read error:", err)
-			}
-			break
-		}
-
-		b := bytes.Trim(buf, "\x00")
-		//fmt.Println(string(b))
-
-		switch {
-		case currentSongCommand.Match(b):
-			fmt.Fprintf(conn, "%sOK\n", currentSongTestData)
-		case statusCommand.Match(b):
-			fmt.Fprintf(conn, "%sOK\n", statusTestData)
-		case statsCommand.Match(b):
-			fmt.Fprintf(conn, "%sOK\n", statsTestData)
-		case simpleCommands.Match(b), pauseCommand.Match(b), playCommand.Match(b):
-			fmt.Fprintln(conn, "OK")
-		case loadCommand.Match(b):
-			m := loadCommand.FindStringSubmatch(string(b))
-			if m[1] == "nonexistent" {
-				fmt.Fprintln(conn, "ACK [50@0] {load} No such playlist")
-			} else {
-				fmt.Fprintln(conn, "OK")
-			}
-		default:
-			fmt.Fprintf(conn, "ACK {%s}", string(b))
+	var failingTests = []string{"localhost:1", "host.notexists:6600"}
+	for _, addr := range failingTests {
+		if _, err := Dial(addr); err == nil {
+			t.Fatalf("connection to '%s' must fail", addr)
 		}
 	}
-	conn.Close()
-}
-
-func TestFailingConnection(t *testing.T) {
-	_, err := Dial("localhost:1")
-	assert.Error(t, err)
-	_, err = Dial("host.notexists:6600")
-	assert.Error(t, err)
 }
 
 func TestCurrentSongCommand(t *testing.T) {
@@ -122,18 +29,29 @@ func TestCurrentSongCommand(t *testing.T) {
 	go mockMPDServer(t, server)
 
 	mpc, err := NewClient("localhost:6600", client)
-	if err != nil {
-		t.Fatalf("Connect failed: %v", err)
-	}
 
 	song, err := mpc.CurrentSong()
-	if assert.NoError(t, err) {
-		assert.Equal(t, currentSongTestData.File, song.File, "field CurrentSong.File")
-		assert.Equal(t, currentSongTestData.ID, song.ID, "field CurrentSong.ID")
-		assert.Equal(t, currentSongTestData.Name, song.Name, "field CurrentSong.Name")
-		assert.Equal(t, currentSongTestData.Pos, song.Pos, "field CurrentSong.Pos")
-		assert.Equal(t, currentSongTestData.Time, song.Time, "field CurrentSong.Time")
-		assert.Equal(t, currentSongTestData.Title, song.Title, "field CurrentSong.Title")
+	if err == nil {
+		if currentSongTestData.File != song.File {
+			t.Fatalf("File fields mismatch")
+		}
+		if currentSongTestData.ID != song.ID {
+			t.Fatalf("ID fields mismatch")
+		}
+		if currentSongTestData.Name != song.Name {
+			t.Fatalf("Name fields mismatch")
+		}
+		if currentSongTestData.Pos != song.Pos {
+			t.Fatalf("Pos fields mismatch")
+		}
+		if currentSongTestData.Time != song.Time {
+			t.Fatalf("Time fields mismatch")
+		}
+		if currentSongTestData.Title != song.Title {
+			t.Fatalf("Title fields mismatch")
+		}
+	} else {
+		t.Fatalf("mpc.CurrentSong() fails with error %#v", err)
 	}
 }
 
@@ -142,25 +60,44 @@ func TestStatusCommands(t *testing.T) {
 	go mockMPDServer(t, server)
 
 	mpc, err := NewClient("localhost:6600", client)
-	if err != nil {
-		t.Fatalf("Connect failed: %v", err)
-	}
 
 	status, err := mpc.Status()
-	if assert.NoError(t, err) {
-		assert.Equal(t, statusTestData.Audio, status.Audio, "field Status.Audio")
-		assert.Equal(t, statusTestData.State, status.State, "field Status.State")
-		assert.Equal(t, statusTestData.Duration, status.Duration, "field Status.Duration")
-		assert.Equal(t, statusTestData.Elapsed, status.Elapsed, "field Status.Elapsed")
-		assert.Equal(t, statusTestData.Error, status.Error, "field Status.Error")
-		assert.Equal(t, statusTestData.Playlist, status.Playlist, "field Status.Playlist")
-		assert.Equal(t, statusTestData.State, status.State, "field Status.State")
-		assert.Equal(t, statusTestData.Song, status.Song, "field Status.Song")
-		assert.Equal(t, statusTestData.Songid, status.Songid, "field Status.Songid")
+	if err == nil {
+		if statusTestData.Audio != status.Audio {
+			t.Fatalf("Audio fields mismatch")
+		}
+		if statusTestData.State != status.State {
+			t.Fatalf("State fields mismatch")
+		}
+		if statusTestData.Duration != status.Duration {
+			t.Fatalf("Duration fields mismatch")
+		}
+		if statusTestData.Elapsed != status.Elapsed {
+			t.Fatalf("Elapsed fields mismatch")
+		}
+		if statusTestData.Error != status.Error {
+			t.Fatalf("Error fields mismatch")
+		}
+		if statusTestData.Playlist != status.Playlist {
+			t.Fatalf("Playlist fields mismatch")
+		}
+		if statusTestData.State != status.State {
+			t.Fatalf("State fields mismatch")
+		}
+		if statusTestData.Song != status.Song {
+			t.Fatalf("Song fields mismatch")
+		}
+		if statusTestData.Songid != status.Songid {
+			t.Fatalf("Songid fields mismatch")
+		}
+	} else {
+		t.Fatalf("mpc.Status() fails with error %#v", err)
 	}
 
 	err = mpc.ClearError()
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("mpc.ClearError() fails with error %#v", err)
+	}
 }
 
 func TestStatsCommand(t *testing.T) {
@@ -168,19 +105,32 @@ func TestStatsCommand(t *testing.T) {
 	go mockMPDServer(t, server)
 
 	mpc, err := NewClient("localhost:6600", client)
-	if err != nil {
-		t.Fatalf("Connect failed: %v", err)
-	}
 
 	stats, err := mpc.Stats()
-	if assert.NoError(t, err) {
-		assert.Equal(t, statsTestData.Artists, stats.Artists, "field Stats.Artists")
-		assert.Equal(t, statsTestData.Albums, stats.Albums, "field Stats.Albums")
-		assert.Equal(t, statsTestData.DBplaytime, stats.DBplaytime, "field Stats.DBplaytime")
-		assert.Equal(t, statsTestData.DBupdate, stats.DBupdate, "field Stats.DBupdate")
-		assert.Equal(t, statsTestData.Playtime, stats.Playtime, "field Stats.Playtime")
-		assert.Equal(t, statsTestData.Songs, stats.Songs, "field Stats.Songs")
-		assert.Equal(t, statsTestData.Uptime, stats.Uptime, "field Stats.Uptime")
+	if err == nil {
+		if statsTestData.Artists != stats.Artists {
+			t.Fatalf("Artists fields mismatch")
+		}
+		if statsTestData.Albums != stats.Albums {
+			t.Fatalf("Albums fields mismatch")
+		}
+		if statsTestData.DBplaytime != stats.DBplaytime {
+			t.Fatalf("DBplaytime fields mismatch")
+		}
+		if statsTestData.DBupdate != stats.DBupdate {
+			t.Fatalf("DBupdate fields mismatch")
+		}
+		if statsTestData.Playtime != stats.Playtime {
+			t.Fatalf("Playtime fields mismatch")
+		}
+		if statsTestData.Songs != stats.Songs {
+			t.Fatalf("Songs fields mismatch")
+		}
+		if statsTestData.Uptime != stats.Uptime {
+			t.Fatalf("Uptime fields mismatch")
+		}
+	} else {
+		t.Fatalf("mpc.Stats() fails with error %#v", err)
 	}
 }
 
@@ -189,37 +139,56 @@ func TestControllingPlaybackCommands(t *testing.T) {
 	go mockMPDServer(t, server)
 
 	mpc, err := NewClient("localhost:6600", client)
-	if err != nil {
-		t.Fatalf("Connect failed: %v", err)
-	}
 
 	err = mpc.Next()
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("mpc.Next() fails with error %#v", err)
+	}
 
 	err = mpc.Pause(false)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("mpc.Pause(false) fails with error %#v", err)
+	}
 	err = mpc.Pause(true)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("mpc.Pause(true) fails with error %#v", err)
+	}
 
 	err = mpc.Play(-1)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("mpc.Play(-1) fails with error %#v", err)
+	}
 	err = mpc.Play(0)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("mpc.Play(0) fails with error %#v", err)
+	}
 	err = mpc.Play(10)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("mpc.Play(10) fails with error %#v", err)
+	}
 
 	err = mpc.PlayID(-1)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("mpc.PlayID(-1) fails with error %#v", err)
+	}
 	err = mpc.PlayID(0)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("mpc.PlayID(0) fails with error %#v", err)
+	}
 	err = mpc.PlayID(10)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("mpc.PlayID(10) fails with error %#v", err)
+	}
 
 	err = mpc.Previous()
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("mpc.Previous() fails with error %#v", err)
+	}
 
 	err = mpc.Stop()
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("mpc.Stop() fails with error %#v", err)
+	}
 }
 
 func TestStoredPlaylistsCommands(t *testing.T) {
@@ -227,14 +196,16 @@ func TestStoredPlaylistsCommands(t *testing.T) {
 	go mockMPDServer(t, server)
 
 	mpc, err := NewClient("localhost:6600", client)
-	if err != nil {
-		t.Fatalf("Connect failed: %v", err)
-	}
 
 	err = mpc.Load("GreatestHits")
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("mpc.Load(\"GreatestHits\") fails with error %#v", err)
+	}
+
 	err = mpc.Load("nonexistent")
-	assert.Error(t, err)
+	if err == nil {
+		t.Fatalf("mpc.Load(\"nonexistent\") fails with error %#v", err)
+	}
 }
 
 func TestConnectionSettingsCommands(t *testing.T) {
@@ -242,12 +213,14 @@ func TestConnectionSettingsCommands(t *testing.T) {
 	go mockMPDServer(t, server)
 
 	mpc, err := NewClient("localhost:6600", client)
-	if err != nil {
-		t.Fatalf("Connect failed: %v", err)
-	}
 
 	err = mpc.Ping()
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("mpc.Ping() fails with error %#v", err)
+	}
+
 	err = mpc.Close()
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("mpc.Close() fails with error %#v", err)
+	}
 }
