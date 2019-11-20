@@ -12,13 +12,13 @@ func TestConnections(t *testing.T) {
 	server, client := net.Pipe()
 	go mockMPDServer(t, server)
 
-	if _, err := NewClient("localhost:6600", client); err != nil {
-		t.Fatalf("connection to 'localhost:6600' must pass")
+	if _, err := mpdConnect(client); err != nil {
+		t.Fatalf("connection to mockMPDServer must pass")
 	}
 
 	var failingTests = []string{"localhost:1", "host.notexists:6600"}
 	for _, addr := range failingTests {
-		if _, err := Dial(addr); err == nil {
+		if _, err := NewClient(addr); err == nil {
 			t.Fatalf("connection to '%s' must fail", addr)
 		}
 	}
@@ -28,7 +28,7 @@ func TestCurrentSongCommand(t *testing.T) {
 	server, client := net.Pipe()
 	go mockMPDServer(t, server)
 
-	mpc, err := NewClient("localhost:6600", client)
+	mpc, err := mpdConnect(client)
 
 	song, err := mpc.CurrentSong()
 	if err == nil {
@@ -59,7 +59,7 @@ func TestStatusCommands(t *testing.T) {
 	server, client := net.Pipe()
 	go mockMPDServer(t, server)
 
-	mpc, err := NewClient("localhost:6600", client)
+	mpc, err := mpdConnect(client)
 
 	status, err := mpc.Status()
 	if err == nil {
@@ -104,7 +104,7 @@ func TestStatsCommand(t *testing.T) {
 	server, client := net.Pipe()
 	go mockMPDServer(t, server)
 
-	mpc, err := NewClient("localhost:6600", client)
+	mpc, err := mpdConnect(client)
 
 	stats, err := mpc.Stats()
 	if err == nil {
@@ -138,7 +138,7 @@ func TestControllingPlaybackCommands(t *testing.T) {
 	server, client := net.Pipe()
 	go mockMPDServer(t, server)
 
-	mpc, err := NewClient("localhost:6600", client)
+	mpc, err := mpdConnect(client)
 
 	err = mpc.Next()
 	if err != nil {
@@ -195,7 +195,7 @@ func TestStoredPlaylistsCommands(t *testing.T) {
 	server, client := net.Pipe()
 	go mockMPDServer(t, server)
 
-	mpc, err := NewClient("localhost:6600", client)
+	mpc, err := mpdConnect(client)
 
 	err = mpc.Load("GreatestHits")
 	if err != nil {
@@ -212,7 +212,7 @@ func TestConnectionSettingsCommands(t *testing.T) {
 	server, client := net.Pipe()
 	go mockMPDServer(t, server)
 
-	mpc, err := NewClient("localhost:6600", client)
+	mpc, err := mpdConnect(client)
 
 	err = mpc.Ping()
 	if err != nil {

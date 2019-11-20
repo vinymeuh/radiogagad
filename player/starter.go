@@ -26,7 +26,7 @@ func Starter(address string, playlists []string, msgch chan string) {
 
 	retry := 1
 	for {
-		if mpc, err = mpd.Dial(address); err == nil {
+		if mpc, err = mpd.NewClient(address); err == nil {
 			break
 		}
 		msgch <- fmt.Sprintf("MPD server not responding: %s", err)

@@ -18,19 +18,21 @@ type Client struct {
 	version string // the version of the protocol spoken, not the real version of the daemon
 }
 
-// Dial connects a client to the MPD server listening on tcp addr
-func Dial(addr string) (*Client, error) {
+// NewClient connects a client to the MPD server listening on tcp addr
+func NewClient(addr string) (*Client, error) {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
-	return NewClient(addr, conn)
+	mpc, err := mpdConnect(conn)
+	if mpc != nil {
+		mpc.addr = addr
+	}
+	return mpc, err
 }
 
-// NewClient creates a new Client using conn for I/O.
-func NewClient(addr string, conn io.ReadWriteCloser) (*Client, error) {
+func mpdConnect(conn io.ReadWriteCloser) (*Client, error) {
 	c := &Client{
-		addr: addr,
 		conn: textproto.NewConn(conn),
 	}
 	line, err := c.conn.ReadLine()

@@ -20,7 +20,7 @@ type MPDInfo struct {
 func MPDFetcher(addr string, mpdinfo chan MPDInfo, msgch chan string) {
 	var previous mpd.CurrentSong
 	for {
-		mpc, err := mpd.Dial(addr)
+		mpc, err := mpd.NewClient(addr)
 		if err != nil {
 			msgch <- fmt.Sprintf("MPD server not responding: %s", err)
 			time.Sleep(2 * time.Second)
