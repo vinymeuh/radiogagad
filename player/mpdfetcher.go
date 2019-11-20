@@ -31,13 +31,13 @@ func MPDFetcher(addr string, mpdinfo chan MPDInfo, msgch chan string) {
 			status, err := mpc.Status()
 			if err != nil {
 				msgch <- fmt.Sprintf("Failed to retrieve MPD Status: %s", err)
-				//@FIXME: error handling
+				goto ResetConnection
 			}
 
 			cs, err := mpc.CurrentSong()
 			if err != nil {
 				msgch <- fmt.Sprintf("Failed to retrieve MPD CurrentSong: %s", err)
-				//@FIXME: error handling
+				goto ResetConnection
 			}
 
 			// pass data to the Displayer
@@ -49,5 +49,8 @@ func MPDFetcher(addr string, mpdinfo chan MPDInfo, msgch chan string) {
 			// waits for notifications from MPD server
 			mpc.Idle("player")
 		}
+	ResetConnection:
+		mpc.Close()
+		msgch <- "MPD server connection closed"
 	}
 }
