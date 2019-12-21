@@ -41,3 +41,9 @@ help: ## Show Help
 
 test: ## Run tests
 	go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+test-radiogaga: buildarm7 ## Test on radiogaga (not persistent)
+	scp radiogagad root@radiogaga:/tmp
+	ssh root@radiogaga rc-service radiogagad stop
+	ssh root@radiogaga cp /tmp/radiogagad /usr/local/bin
+	ssh root@radiogaga rc-service radiogagad start

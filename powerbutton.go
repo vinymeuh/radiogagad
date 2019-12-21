@@ -24,6 +24,11 @@ func powerButton(msgch chan string, pinBootOk, pinShutdown, pinSoftShutdown gpio
 		return
 	}
 
+	if err := pinSoftShutdown.In(gpio.PullDown, gpio.RisingEdge); err != nil {
+		msgch <- fmt.Sprintf("Failed to setup pinSoftShutdown: %v", err)
+		return
+	}
+
 	// poweroff for Alpine Linux, shutdown for Raspbian
 	var CmdShutdown string
 	if _, err := os.Stat("/sbin/shutdown"); os.IsNotExist(err) {
@@ -34,9 +39,8 @@ func powerButton(msgch chan string, pinBootOk, pinShutdown, pinSoftShutdown gpio
 	msgch <- fmt.Sprintf("Shutdown command is '%s'", CmdShutdown)
 
 	go func() {
-		msgch <- "Power button successfully setup"
 		for pinShutdown.WaitForEdge(-1) {
-			msgch <- "Power button fired"
+			msgch <- "Shutdown requested by power button"
 			cmdA := strings.Split(CmdShutdown, " ")
 			cmd := exec.Command(cmdA[0], cmdA[1:]...)
 			cmd.Stdout = nil
@@ -44,4 +48,17 @@ func powerButton(msgch chan string, pinBootOk, pinShutdown, pinSoftShutdown gpio
 			cmd.Run()
 		}
 	}()
+
+	go func() {
+		for pinSoftShutdown.WaitForEdge(-1) {
+			msgch <- "Soft shutdown requested by power button"
+			cmdA := strings.Split(CmdShutdown, " ")
+			cmd := exec.Command(cmdA[0], cmdA[1:]...)
+			cmd.Stdout = nil
+			cmd.Stderr = nil
+			cmd.Run()
+		}
+	}()
+
+	msgch <- "Power button successfully setup"
 }
