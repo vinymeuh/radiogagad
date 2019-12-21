@@ -29,9 +29,9 @@ const (
 var (
 	// logger for main goroutine
 	logmsg *log.Logger
-	// variables for build time versioning
-	Version string
-	Build   string
+	// variables set at build time
+	buildVersion string
+	buildDate    string
 )
 
 func pin(name string) gpio.PinIO {
@@ -45,7 +45,7 @@ func pin(name string) gpio.PinIO {
 
 func main() {
 	logmsg = log.New(os.Stdout, "", 0)
-	logmsg.Printf("Starting radiogagad %s built %s using %s (%s/%s)\n", Version, Build, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+	logmsg.Printf("Starting radiogagad %s built %s using %s (%s/%s)\n", buildVersion, buildDate, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 
 	server := os.Getenv("RGGD_MPD_SERVER")
 	if server == "" {

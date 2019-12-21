@@ -15,7 +15,8 @@ ENV = /usr/bin/env
 VERSION = `git describe --tags --always`
 BUILD   = `date +%FT%T%z`
 
-LDFLAGS = -ldflags "-w -s -X main.Version=${VERSION} -X main.Build=${BUILD}"
+GOFLAGS = -trimpath
+LDFLAGS = -ldflags "-w -s -X main.buildVersion=${VERSION} -X main.buildDate=${BUILD}"
 
 
 build: ## Build for current host
