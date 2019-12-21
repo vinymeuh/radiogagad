@@ -86,7 +86,7 @@ func main() {
 	// launches the goroutine responsible for starting playback of a playlist
 	playlists := strings.Split(os.Getenv("RGGD_STARTUP_PLAYLISTS"), ",")
 	if len(playlists) > 0 && playlists[0] != "" {
-		go player.Starter(server, playlists, logch)
+		go starter(server, playlists, logch)
 	}
 
 	// launches the goroutines which manage the display

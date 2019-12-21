@@ -1,7 +1,7 @@
 // Copyright 2019 VinyMeuh. All rights reserved.
 // Use of the source code is governed by a MIT-style license that can be found in the LICENSE file.
 
-package player
+package main
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ const (
 // Starter loads and starts playing a playlist
 // In case of the MPD server is not responding, retry for a maximum of
 // startupMaxRetries spaced by startupRetryDelaySeconds seconds.
-func Starter(address string, playlists []string, msgch chan string) {
+func starter(address string, playlists []string, msgch chan string) {
 	var (
 		mpc *mpd.Client
 		err error
@@ -39,17 +39,25 @@ func Starter(address string, playlists []string, msgch chan string) {
 		time.Sleep(startupRetryDelaySeconds * time.Second)
 	}
 
-	for _, playlist := range playlists {
-		if err := mpc.Load(playlist); err != nil {
-			msgch <- fmt.Sprintf("Failed to load playlist %s (%s)", playlist, err)
-			continue
-		}
-		if err := mpc.Play(-1); err != nil {
-			msgch <- fmt.Sprintf("Failed to start playing playlist %s: %s", playlist, err)
-		} else {
-			msgch <- fmt.Sprintf("Successfully started playing playlist '%s'", playlist)
-			return
-		}
+	status, err := mpc.Status()
+	if err != nil {
+		msgch <- fmt.Sprintf("Unable to retrieve MPD state, playlists load aborted (%s)", err)
+		return
 	}
-	msgch <- "Unable to load ANY playlists"
+	if status.State == "stop" {
+		msgch <- fmt.Sprintf("MPD playback is stopped, try to start it")
+		for _, playlist := range playlists {
+			if err := mpc.Load(playlist); err != nil {
+				msgch <- fmt.Sprintf("Failed to load playlist %s (%s)", playlist, err)
+				continue
+			}
+			if err := mpc.Play(-1); err != nil {
+				msgch <- fmt.Sprintf("Failed to start playing playlist %s: %s", playlist, err)
+			} else {
+				msgch <- fmt.Sprintf("Successfully started playing playlist '%s'", playlist)
+				return
+			}
+		}
+		msgch <- "Unable to load ANY playlists"
+	}
 }
