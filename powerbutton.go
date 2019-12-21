@@ -1,7 +1,7 @@
 // Copyright 2019 VinyMeuh. All rights reserved.
 // Use of the source code is governed by a MIT-style license that can be found in the LICENSE file.
 
-package player
+package main
 
 import (
 	"fmt"
@@ -10,38 +10,15 @@ import (
 	"strings"
 
 	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/gpio/gpioreg"
-	"periph.io/x/periph/host"
 )
 
-const (
-	gpioBOOTOK   = "GPIO22"
-	gpioSHUTDOWN = "GPIO17"
-	//gpioSOFT_SHUTDOWN = "GPIO4" // for reference, not used
-)
-
-// PowerButton is responsible to start a system shutdown when button is fired
-func PowerButton(msgch chan string) {
-	if _, err := host.Init(); err != nil {
-		msgch <- fmt.Sprintf("Failed to run host.Init(): %v", err)
-		return
-	}
-
-	pinBootOk := gpioreg.ByName(gpioBOOTOK)
-	if pinBootOk == nil {
-		msgch <- "Failed to find pinBootOk"
-		return
-	}
+// powerButton is responsible to start a system shutdown when button is fired
+func powerButton(msgch chan string, pinBootOk, pinShutdown, pinSoftShutdown gpio.PinIO) {
 	if err := pinBootOk.Out(gpio.High); err != nil {
 		msgch <- fmt.Sprintf("Failed to setup pinBootOk: %v", err)
 		return
 	}
 
-	pinShutdown := gpioreg.ByName(gpioSHUTDOWN)
-	if pinShutdown == nil {
-		msgch <- "Failed to find pinShutdown"
-		return
-	}
 	if err := pinShutdown.In(gpio.PullDown, gpio.RisingEdge); err != nil {
 		msgch <- fmt.Sprintf("Failed to setup pinShutdown: %v", err)
 		return
