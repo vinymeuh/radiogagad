@@ -8,12 +8,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vinymeuh/radiogagad/winstar"
+	"periph.io/x/periph/conn/gpio"
+
+	"github.com/vinymeuh/radiogagad/weh001602a"
 )
 
-// displayer manages the OLED display, mainly showing MPD messages received from MPDFetcher
-func displayer(mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGroup, msgch chan string) {
-	lcd := winstar.Display()
+// displayer manages the display, mainly showing MPD messages received from MPDFetcher
+func displayer(mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGroup, msgch chan string, pinRS, pinE, pinD4, pinD5, pinD6, pinD7 gpio.PinIO) {
+
+	display, err := weh001602a.NewDisplay(pinRS, pinE, pinD4, pinD5, pinD6, pinD7)
+	if err != nil {
+		msgch <- fmt.Sprintf("Failed to setup weh001602a display: %v", err)
+		return
+	}
 	clrscr.Add(1)
 
 	ticker := time.NewTicker(60 * time.Second)
@@ -23,10 +30,10 @@ func displayer(mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGro
 			case <-ticker.C:
 				break
 			case <-stopscr:
-				lcd.Clear()
-				lcd.WriteAt(winstar.Line1, "Bye Bye")
+				display.Clear()
+				display.Line1().WriteCentred("Bye Bye")
 				time.Sleep(2 * time.Second)
-				lcd.Clear()
+				display.Clear()
 				clrscr.Done()
 				return
 			case data := <-mpdinfo:
@@ -36,20 +43,20 @@ func displayer(mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGro
 					case "http":
 						msgch <- fmt.Sprintf("Playing radio='%s', title='%s'",
 							data.Name, data.Title)
-						lcd.Clear()
-						lcd.WriteAt(winstar.Line1, data.Name)
-						lcd.WriteAt(winstar.Line2, data.Title)
+						display.Clear()
+						display.Line1().WriteCentred(data.Name)
+						display.Line2().WriteCentred(data.Title)
 					default:
 						msgch <- fmt.Sprintf("Playing artist='%s', album='%s', title='%s', %d/%d\n",
 							data.Artist, data.Album, data.Title, data.Song+1, data.PlaylistLength)
-						lcd.Clear()
-						lcd.WriteAt(winstar.Line1, data.Artist)
-						lcd.WriteAt(winstar.Line2, data.Title)
+						display.Clear()
+						display.Line1().WriteCentred(data.Artist)
+						display.Line2().WriteCentred(data.Title)
 					}
 				case "pause":
 					msgch <- "Player paused"
 				default:
-					lcd.Clear()
+					display.Clear()
 					msgch <- "Player stopped"
 				}
 			}

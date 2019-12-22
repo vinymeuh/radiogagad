@@ -22,6 +22,13 @@ const (
 	gpioBootOk       = "GPIO22"
 	gpioShutdown     = "GPIO17"
 	gpioSoftShutdown = "GPIO4"
+	// winstar weh001602a display
+	gpioRS = "GPIO7"
+	gpioE  = "GPIO8"
+	gpioD4 = "GPIO25"
+	gpioD5 = "GPIO24"
+	gpioD6 = "GPIO23"
+	gpioD7 = "GPIO27"
 )
 
 var (
@@ -89,7 +96,7 @@ func main() {
 
 	// launches the goroutines which manage the display
 	go mpdFetcher(server, mpdinfo, logch)
-	go displayer(mpdinfo, stopscr, &clrscr, logch)
+	go displayer(mpdinfo, stopscr, &clrscr, logch, pin(gpioRS), pin(gpioE), pin(gpioD4), pin(gpioD5), pin(gpioD6), pin(gpioD7))
 
 	// main loop waits for messages from goroutines
 	for {
