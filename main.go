@@ -15,8 +15,6 @@ import (
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/host"
-
-	"github.com/vinymeuh/radiogagad/player"
 )
 
 const (
@@ -56,7 +54,7 @@ func main() {
 	// this channel will be used by goroutines to return messages to main
 	var logch = make(chan string, 32) // buffered channel can hold up to 32 messages before block
 	// this channel will be used to exchange data from MPDFetcher to Displayer
-	var mpdinfo = make(chan player.MPDInfo, 1)
+	var mpdinfo = make(chan mpdInfo, 1)
 	// this channel is used to notify Displayer before shutting down
 	var stopscr = make(chan struct{})
 	// this wait group is used for waiting that Displayer clear the screen before exit
@@ -90,8 +88,8 @@ func main() {
 	}
 
 	// launches the goroutines which manage the display
-	go player.MPDFetcher(server, mpdinfo, logch)
-	go player.Displayer(mpdinfo, stopscr, &clrscr, logch)
+	go mpdFetcher(server, mpdinfo, logch)
+	go displayer(mpdinfo, stopscr, &clrscr, logch)
 
 	// main loop waits for messages from goroutines
 	for {

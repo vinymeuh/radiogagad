@@ -1,7 +1,7 @@
 // Copyright 2019 VinyMeuh. All rights reserved.
 // Use of the source code is governed by a MIT-style license that can be found in the LICENSE file.
 
-package player
+package main
 
 import (
 	"fmt"
@@ -11,8 +11,8 @@ import (
 	"github.com/vinymeuh/radiogagad/winstar"
 )
 
-// Displayer manages the OLED display, mainly showing MPD messages received from MPDFetcher
-func Displayer(mpdinfo chan MPDInfo, stopscr chan struct{}, clrscr *sync.WaitGroup, msgch chan string) {
+// displayer manages the OLED display, mainly showing MPD messages received from MPDFetcher
+func displayer(mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGroup, msgch chan string) {
 	lcd := winstar.Display()
 	clrscr.Add(1)
 
@@ -24,7 +24,7 @@ func Displayer(mpdinfo chan MPDInfo, stopscr chan struct{}, clrscr *sync.WaitGro
 				break
 			case <-stopscr:
 				lcd.Clear()
-				lcd.WriteAt(winstar.Line1, "Stopping")
+				lcd.WriteAt(winstar.Line1, "Bye Bye")
 				time.Sleep(2 * time.Second)
 				lcd.Clear()
 				clrscr.Done()

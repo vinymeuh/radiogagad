@@ -1,7 +1,7 @@
 // Copyright 2019 VinyMeuh. All rights reserved.
 // Use of the source code is governed by a MIT-style license that can be found in the LICENSE file.
 
-package player
+package main
 
 import (
 	"fmt"
@@ -10,14 +10,14 @@ import (
 	"github.com/vinymeuh/radiogagad/mpd"
 )
 
-// MPDInfo is the format of messages send by MPDFetcher to Displayer
-type MPDInfo struct {
+// mpdInfo is the format of messages send by MPDFetcher to Displayer
+type mpdInfo struct {
 	*mpd.Status
 	*mpd.CurrentSong
 }
 
-// MPDFetcher retrieves messages from the MPD daemon and writes them in a channel as a MPDInfo structure
-func MPDFetcher(addr string, mpdinfo chan MPDInfo, msgch chan string) {
+// mpdFetcher retrieves messages from the MPD daemon and writes them in a channel as a MPDInfo structure
+func mpdFetcher(addr string, mpdinfo chan mpdInfo, msgch chan string) {
 	var previous mpd.CurrentSong
 	for {
 		mpc, err := mpd.NewClient(addr)
@@ -42,7 +42,7 @@ func MPDFetcher(addr string, mpdinfo chan MPDInfo, msgch chan string) {
 
 			// pass data to the Displayer
 			if cs.Name != previous.Name || cs.Title != previous.Title {
-				mpdinfo <- MPDInfo{Status: status, CurrentSong: cs}
+				mpdinfo <- mpdInfo{Status: status, CurrentSong: cs}
 				previous = *cs
 			}
 
