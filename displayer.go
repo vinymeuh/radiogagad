@@ -30,7 +30,7 @@ func displayer(mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGro
 			case <-ticker.C:
 				break
 			case <-stopscr:
-				writeTo(display, "Bye Bye", "")
+				writeTo(display, "Bye Bye", `(°_°)ノ`)
 				time.Sleep(2 * time.Second)
 				display.Clear()
 				clrscr.Done()
@@ -50,10 +50,10 @@ func displayer(mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGro
 					}
 				case "pause":
 					msgch <- "Player paused"
-					writeTo(display, "Pause", "")
+					writeTo(display, "Pause", `(-。-) zzz`)
 				default:
 					msgch <- "Player stopped"
-					writeTo(display, "Stop", "")
+					writeTo(display, "Stop", `(-。-) zzz`)
 				}
 			}
 		}

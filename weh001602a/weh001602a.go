@@ -76,11 +76,8 @@ func (d *Display) Off() {
 
 // Write writes text left aligned
 func (d *Display) Write(txt string) {
-	for _, char := range txt {
-		if char > 255 {
-			char = 32
-		}
-		d.sendData(uint8(char))
+	for _, char := range []rune(txt) {
+		d.sendData(ft00(char))
 	}
 }
 
@@ -124,7 +121,7 @@ func (d *Display) initialize() error {
 		cmd  uint8
 		wait time.Duration
 	}{
-		{0b00101001, 0}, // function set, 4-bit (d4=0), 2 lines (d3=1), 5x8dots (d2=0), Western European font table (d1d0=01)
+		{0b00101000, 0}, // function set, 4-bit (d4=0), 2 lines (d3=1), 5x8dots (d2=0), English Japanese font table (d1d0=00)
 		{0b00001000, 0}, // display off (d2=0)
 		{0b00000110, 0}, // entry mode set, increment/move right (d1=1), noshift (d0=0)
 		{0b00000010, 0}, // return home
@@ -199,4 +196,27 @@ func (d *Display) write4bits(bits uint8) {
 	time.Sleep(50 * time.Microsecond)
 	d.e.Out(gpio.Low)
 	time.Sleep(50 * time.Microsecond)
+}
+
+// mapping function for English Japanese character font table
+func ft00(r rune) uint8 {
+	// ASCII
+	if r >= 32 && r <= 125 {
+		return uint8(r)
+	}
+
+	switch r {
+	case 176:
+		return 223 // `°`
+	case 12290: // `。`
+		return 161
+	case 12494: // `ノ`
+		return 201
+	}
+
+	if r <= 250 {
+		return uint8(r)
+	}
+
+	return 32
 }
