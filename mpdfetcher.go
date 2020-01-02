@@ -18,7 +18,7 @@ type mpdInfo struct {
 
 // mpdFetcher retrieves messages from the MPD daemon and writes them in a channel as a MPDInfo structure
 func mpdFetcher(addr string, mpdinfo chan mpdInfo, msgch chan string) {
-	var previous mpd.CurrentSong
+	previous := mpdInfo{Status: &mpd.Status{}, CurrentSong: &mpd.CurrentSong{}}
 	for {
 		mpc, err := mpd.NewClient(addr)
 		if err != nil {
@@ -40,10 +40,14 @@ func mpdFetcher(addr string, mpdinfo chan mpdInfo, msgch chan string) {
 				goto ResetConnection
 			}
 
+			current := mpdInfo{Status: status, CurrentSong: cs}
+
 			// pass data to the Displayer
-			if cs.Name != previous.Name || cs.Title != previous.Title {
-				mpdinfo <- mpdInfo{Status: status, CurrentSong: cs}
-				previous = *cs
+			if current.Status.State != previous.Status.State ||
+				current.CurrentSong.Name != previous.CurrentSong.Name ||
+				current.CurrentSong.Title != previous.CurrentSong.Title {
+				mpdinfo <- current
+				previous = current
 			}
 
 			// waits for notifications from MPD server
