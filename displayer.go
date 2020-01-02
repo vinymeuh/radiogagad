@@ -30,8 +30,7 @@ func displayer(mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGro
 			case <-ticker.C:
 				break
 			case <-stopscr:
-				display.Clear()
-				display.Line1().WriteCentred("Bye Bye")
+				writeTo(display, "Bye Bye", "")
 				time.Sleep(2 * time.Second)
 				display.Clear()
 				clrscr.Done()
@@ -43,23 +42,36 @@ func displayer(mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGro
 					case "http":
 						msgch <- fmt.Sprintf("Playing radio='%s', title='%s'",
 							data.Name, data.Title)
-						display.Clear()
-						display.Line1().WriteCentred(data.Name)
-						display.Line2().WriteCentred(data.Title)
+						writeTo(display, data.Name, data.Title)
 					default:
 						msgch <- fmt.Sprintf("Playing artist='%s', album='%s', title='%s', %d/%d\n",
 							data.Artist, data.Album, data.Title, data.Song+1, data.PlaylistLength)
-						display.Clear()
-						display.Line1().WriteCentred(data.Artist)
-						display.Line2().WriteCentred(data.Title)
+						writeTo(display, data.Artist, data.Title)
 					}
 				case "pause":
 					msgch <- "Player paused"
+					writeTo(display, "Pause", "")
 				default:
-					display.Clear()
 					msgch <- "Player stopped"
+					writeTo(display, "Stop", "")
 				}
 			}
 		}
 	}()
+}
+
+func writeTo(d *weh001602a.Display, line1 string, line2 string) {
+	d.Clear()
+
+	if len(line1) < weh001602a.Width-1 {
+		d.Line1().WriteCentred(line1)
+	} else {
+		d.Line1().Write(line1)
+	}
+
+	if len(line2) < weh001602a.Width-1 {
+		d.Line2().WriteCentred(line2)
+	} else {
+		d.Line2().Write(line2)
+	}
 }
