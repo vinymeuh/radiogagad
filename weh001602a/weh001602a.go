@@ -57,6 +57,35 @@ func (d *Display) Clear() {
 	time.Sleep(10 * time.Millisecond) // long instruction, max 6.2ms
 }
 
+// CreateChar creates a custom character for use on the display.
+// Up to eight characters (num 0 to 7) of 5x8 dots can be defined.
+// Character appearance is defined by an array of eight bytes, one for each line.
+func (d *Display) CreateChar(num uint8, pattern [8]uint8) {
+	// set the CGRAM address
+	switch num {
+	case 0:
+		d.sendCommand(0x40)
+	case 1:
+		d.sendCommand(0x48)
+	case 2:
+		d.sendCommand(0x50)
+	case 3:
+		d.sendCommand(0x58)
+	case 4:
+		d.sendCommand(0x60)
+	case 5:
+		d.sendCommand(0x68)
+	case 6:
+		d.sendCommand(0x70)
+	case 7:
+		d.sendCommand(0x78)
+	}
+	// write character pattern
+	for _, w := range pattern {
+		d.sendData(w)
+	}
+}
+
 // Line1 sets cursor at start of first line
 func (d *Display) Line1() *Display {
 	d.sendCommand(0x80)
@@ -81,16 +110,23 @@ func (d *Display) Write(txt string) {
 	}
 }
 
-// WriteRightAligned writes text right aligned
-func (d *Display) WriteRightAligned(txt string) {
-	newtxt := fmt.Sprintf("%*s", Width, txt)
-	d.Write(newtxt)
+// WriteChar writes character corresponding to code in font table
+// Notes that code from 0 to 7 are for custom defined characters
+func (d *Display) WriteChar(code uint8) *Display {
+	d.sendData(code)
+	return d
 }
 
 // WriteCentred writes text centred
 func (d *Display) WriteCentred(txt string) {
 	padLen := int((Width - len(txt)) / 2)
 	newtxt := fmt.Sprintf("%*s%s%*s", padLen, "", txt, padLen, "")[0 : Width-1]
+	d.Write(newtxt)
+}
+
+// WriteRightAligned writes text right aligned
+func (d *Display) WriteRightAligned(txt string) {
+	newtxt := fmt.Sprintf("%*s", Width, txt)
 	d.Write(newtxt)
 }
 

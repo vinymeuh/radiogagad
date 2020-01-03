@@ -5,6 +5,7 @@
 package main
 
 import (
+	"strconv"
 	"time"
 
 	"periph.io/x/periph/conn/gpio/gpioreg"
@@ -36,25 +37,45 @@ func main() {
 	display.Line2().WriteRightAligned("right ->")
 	time.Sleep(3 * time.Second)
 
-	// kaomoji
+	// Create & use custom characters
+	bell := [8]uint8{
+		0b00100,
+		0b01110,
+		0b01110,
+		0b01110,
+		0b01110,
+		0b11111,
+		0b00100,
+		0b00000,
+	}
+	battery := [8]uint8{
+		0b01110,
+		0b11011,
+		0b10001,
+		0b10001,
+		0b11111,
+		0b11111,
+		0b11111,
+		0b00000,
+	}
+
+	display.CreateChar(0, bell)
+	display.CreateChar(1, battery)
+
+	// Write custom char
 	display.Clear()
-	k1 := `(°_°)ノ`
-	display.Line1().WriteCentred(k1)
+	display.Line1().WriteChar(0).Write(" ALARM")
+	display.Line2().WriteChar(1).Write(" BATTERY")
 	time.Sleep(3 * time.Second)
 
-	display.Clear()
-	k2 := `(-。-) Zzzz`
-	display.Line1().WriteCentred(k2)
-	time.Sleep(3 * time.Second)
+	// Write characters font table
+	for i := 0; i <= 255; i++ {
+		display.Clear()
+		display.Line1().Write(strconv.Itoa(i))
+		display.Line2().WriteChar(uint8(i))
+		time.Sleep(1 * time.Second)
+	}
 
-	// Write character font table
-	// for i := 17; i <= 255; i++ {
-	// 	display.Clear()
-	// 	c := uint(i)
-	// 	display.Line1().Write(strconv.Itoa(int(c)))
-	// 	display.Line2().Write(string(c))
-	// 	time.Sleep(2 * time.Second)
-	// }
-
+	// Shutdown
 	display.Off()
 }
