@@ -13,6 +13,37 @@ import (
 	"github.com/vinymeuh/radiogagad/weh001602a"
 )
 
+const width = weh001602a.Width
+
+// custom characters for weh001602a
+const (
+	cPause = 0
+	cStop  = 1
+)
+
+var (
+	glyphPause = [8]uint8{
+		0b11011,
+		0b11011,
+		0b11011,
+		0b11011,
+		0b11011,
+		0b11011,
+		0b11011,
+		0b00000,
+	}
+	glyphStop = [8]uint8{
+		0b11111,
+		0b11111,
+		0b11111,
+		0b11111,
+		0b11111,
+		0b11111,
+		0b11111,
+		0b00000,
+	}
+)
+
 // displayer manages the display, mainly showing MPD messages received from MPDFetcher
 func displayer(mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGroup, msgch chan string, pinRS, pinE, pinD4, pinD5, pinD6, pinD7 gpio.PinIO) {
 
@@ -23,6 +54,14 @@ func displayer(mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGro
 	}
 	clrscr.Add(1)
 
+	display.CreateChar(cPause, glyphPause)
+	display.CreateChar(cStop, glyphStop)
+
+	// greeting message
+	writeTo(display, "Hello", "")
+	time.Sleep(2 * time.Second)
+
+	// main
 	ticker := time.NewTicker(60 * time.Second)
 	go func() {
 		for {
@@ -30,7 +69,7 @@ func displayer(mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGro
 			case <-ticker.C:
 				break
 			case <-stopscr:
-				writeTo(display, "Bye Bye", `(°_°)ノ`)
+				writeTo(display, "Bye Bye", "")
 				time.Sleep(2 * time.Second)
 				display.Clear()
 				clrscr.Done()
@@ -50,10 +89,12 @@ func displayer(mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGro
 					}
 				case "pause":
 					msgch <- "Player paused"
-					writeTo(display, "Pause", `(-。-) zzz`)
+					display.Clear()
+					display.Line1().Write("     ").WriteChar(cPause).Write(" Pause") // ugly manual centering :(
 				default:
 					msgch <- "Player stopped"
-					writeTo(display, "Stop", `(-。-) zzz`)
+					display.Clear()
+					display.Line1().Write("     ").WriteChar(cStop).Write(" Stop") // ugly manual centering :(
 				}
 			}
 		}
@@ -64,14 +105,19 @@ func writeTo(d *weh001602a.Display, line1 string, line2 string) {
 	d.Clear()
 
 	if len(line1) < weh001602a.Width-1 {
-		d.Line1().WriteCentred(line1)
+		d.Line1().Write(centred(line1))
 	} else {
 		d.Line1().Write(line1)
 	}
 
 	if len(line2) < weh001602a.Width-1 {
-		d.Line2().WriteCentred(line2)
+		d.Line2().Write(centred(line2))
 	} else {
 		d.Line2().Write(line2)
 	}
+}
+
+func centred(txt string) string {
+	padLen := int((width - len(txt)) / 2)
+	return fmt.Sprintf("%*s%s%*s", padLen, "", txt, padLen, "")[0 : width-1]
 }

@@ -4,7 +4,6 @@
 package weh001602a
 
 import (
-	"fmt"
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
@@ -103,11 +102,48 @@ func (d *Display) Off() {
 	d.sendCommand(0b00001000)
 }
 
-// Write writes text left aligned
-func (d *Display) Write(txt string) {
-	for _, char := range []rune(txt) {
-		d.sendData(ft00(char))
+// Write writes string translated to Western European font table 2
+func (d *Display) Write(txt string) *Display {
+	for _, char := range txt {
+		// code 32 to 126 from font table matchs exactly ASCII
+		switch {
+		case char >= 32 && char <= 126:
+			d.sendData(uint8(char)) // font table matches exactly ASCII
+		case char == 224:
+			d.sendData(133) // à
+		case char == 226:
+			d.sendData(131) // â
+		case char == 228:
+			d.sendData(132) // ä
+		case char == 232:
+			d.sendData(138) // è
+		case char == 233:
+			d.sendData(130) // é
+		case char == 234:
+			d.sendData(136) // ê
+		case char == 235:
+			d.sendData(137) // ë
+		case char == 238:
+			d.sendData(140) // î
+		case char == 239:
+			d.sendData(139) // ï
+		case char == 244:
+			d.sendData(148) // ô
+		case char == 246:
+			d.sendData(149) // ö
+		case char == 249:
+			d.sendData(151) // ù
+		case char == 251:
+			d.sendData(150) // û
+		case char == 252:
+			d.sendData(129) // ü
+		case char == 255:
+			d.sendData(152) // ÿ
+		case char == 231:
+			d.sendData(135) // ç
+		}
 	}
+	return d
 }
 
 // WriteChar writes character corresponding to code in font table
@@ -115,19 +151,6 @@ func (d *Display) Write(txt string) {
 func (d *Display) WriteChar(code uint8) *Display {
 	d.sendData(code)
 	return d
-}
-
-// WriteCentred writes text centred
-func (d *Display) WriteCentred(txt string) {
-	padLen := int((Width - len(txt)) / 2)
-	newtxt := fmt.Sprintf("%*s%s%*s", padLen, "", txt, padLen, "")[0 : Width-1]
-	d.Write(newtxt)
-}
-
-// WriteRightAligned writes text right aligned
-func (d *Display) WriteRightAligned(txt string) {
-	newtxt := fmt.Sprintf("%*s", Width, txt)
-	d.Write(newtxt)
 }
 
 // from HD44780U Hitachi Datasheet - page 46
@@ -157,7 +180,7 @@ func (d *Display) initialize() error {
 		cmd  uint8
 		wait time.Duration
 	}{
-		{0b00101000, 0}, // function set, 4-bit (d4=0), 2 lines (d3=1), 5x8dots (d2=0), English Japanese font table (d1d0=00)
+		{0b00101011, 0}, // function set, 4-bit (d4=0), 2 lines (d3=1), 5x8dots (d2=0), Western European font table 2 (d1d0=11)
 		{0b00001000, 0}, // display off (d2=0)
 		{0b00000110, 0}, // entry mode set, increment/move right (d1=1), noshift (d0=0)
 		{0b00000010, 0}, // return home
@@ -232,27 +255,4 @@ func (d *Display) write4bits(bits uint8) {
 	time.Sleep(50 * time.Microsecond)
 	d.e.Out(gpio.Low)
 	time.Sleep(50 * time.Microsecond)
-}
-
-// mapping function for English Japanese character font table
-func ft00(r rune) uint8 {
-	// ASCII
-	if r >= 32 && r <= 125 {
-		return uint8(r)
-	}
-
-	switch r {
-	case 176:
-		return 223 // `°`
-	case 12290: // `。`
-		return 161
-	case 12494: // `ノ`
-		return 201
-	}
-
-	if r <= 250 {
-		return uint8(r)
-	}
-
-	return 32
 }
