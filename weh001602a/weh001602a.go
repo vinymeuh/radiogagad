@@ -9,11 +9,6 @@ import (
 	"periph.io/x/periph/conn/gpio"
 )
 
-const (
-	// Width is the number of characters per line
-	Width = 16
-)
-
 // Display is the driver for the Winstar 16x2 Character OLED WEH001602A in 4-bit read-only mode
 type Display struct {
 	rs  gpio.PinIO // Register Select (High=DATA, Low=Instruction Code)
