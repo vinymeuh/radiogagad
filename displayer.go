@@ -64,17 +64,43 @@ func displayer(mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGro
 	time.Sleep(2 * time.Second)
 
 	// lines to display
-	var line1Txt string
-	var line2Txt string
+	var (
+		line1Txt   string
+		line1Len   int
+		line1Start int
+		line1End   int
+		line2Txt   string
+		line2Len   int
+		line2Start int
+		line2End   int
+	)
 
 	// main
-	ticker := time.NewTicker(60 * time.Second)
+	ticker := time.NewTicker(400 * time.Millisecond)
 	go func() {
 		for {
 			select {
 			//-- lines scrolling --//
 			case <-ticker.C:
-				break
+				if line1Len > 0 {
+					display.Line1().Write(line1Txt[line1Start:line1End])
+					line1Start++
+					line1End++
+					if line1End > line1Len {
+						line1Start = 1
+						line1End = displayerWidth
+					}
+				}
+
+				if line2Len > 0 {
+					display.Line2().Write(line2Txt[line2Start:line2End])
+					line2Start++
+					line2End++
+					if line2End > line2Len {
+						line2Start = 1
+						line2End = displayerWidth
+					}
+				}
 			//-- shutdown --//
 			case <-stopscr:
 				display.Clear()
@@ -102,16 +128,26 @@ func displayer(mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGro
 					}
 					// write line1 & line2
 					display.Clear()
+
 					if len(line1Txt) < displayerWidth-1 {
+						line1Len = 0
 						display.Line1().Write(centred(line1Txt))
 					} else {
-						display.Line1().Write(line1Txt)
+						line1Txt = fmt.Sprintf("%s                %s", line1Txt, line1Txt[0:displayerWidth-1])
+						line1Start = 0
+						line1End = displayerWidth - 1
+						// display delayed to next tick
 					}
 
 					if len(line2Txt) < displayerWidth-1 {
+						line2Len = 0
 						display.Line2().Write(centred(line2Txt))
 					} else {
-						display.Line2().Write(line2Txt)
+						line2Txt = fmt.Sprintf("%s                %s", line2Txt, line2Txt[0:displayerWidth-1])
+						line2Len = len(line2Txt)
+						line2Start = 0
+						line2End = displayerWidth - 1
+						// display delayed to next tick
 					}
 				case "pause":
 					msgch <- "Player paused"
