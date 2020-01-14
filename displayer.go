@@ -134,6 +134,7 @@ func displayer(mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGro
 						display.Line1().Write(centred(line1Txt))
 					} else {
 						line1Txt = fmt.Sprintf("%s                %s", line1Txt, line1Txt[0:displayerWidth-1])
+						line1Len = len(line1Txt)
 						line1Start = 0
 						line1End = displayerWidth - 1
 						// display delayed to next tick
