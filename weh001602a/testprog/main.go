@@ -32,6 +32,7 @@ func rightAligned(txt string) string {
 func writeAccentedCharacters() {
 	display.Clear()
 	display.Line1().Write("àâäéèêëïîôöùûüÿç")
+	display.Line2().Write("ñØø")
 	time.Sleep(3 * time.Second)
 }
 
@@ -104,6 +105,39 @@ func writeFontTable() {
 	}
 }
 
+func writeWithScrolling() {
+	display.Clear()
+	var w sync.WaitGroup
+	w.Add(1)
+	ticker := time.NewTicker(1 * time.Second)
+	go func() {
+		display.Line1().Write("Scrolling")
+		msg2 := "I'm scrolling from right to left"
+		line2 := fmt.Sprintf("%s                %s", msg2, msg2)
+		l2 := len(line2)
+		s2 := 0
+		e2 := displayerWidth - 1
+		tick := 0
+		for {
+			select {
+			case <-ticker.C:
+				if tick == 60 {
+					w.Done()
+					return
+				}
+				tick++
+				display.Line2().Write(line2[s2:e2])
+				s2 = (s2 + 1) % l2
+				e2 = s2 + (displayerWidth - 1)
+				if e2 > l2 {
+					e2 = l2
+				}
+			}
+		}
+	}()
+	w.Wait()
+}
+
 type line struct {
 	txt    string
 	isLong bool
@@ -135,37 +169,7 @@ func main() {
 	writeAccentedCharacters()
 	writeCustomCharacters()
 	//writeFontTable()
-
-	display.Clear()
-	var w sync.WaitGroup
-	w.Add(1)
-	ticker := time.NewTicker(1 * time.Second)
-	go func() {
-		display.Line1().Write("Scrolling")
-		msg2 := "I'm scrolling from right to left"
-		line2 := fmt.Sprintf("%s                %s", msg2, msg2)
-		l2 := len(line2)
-		s2 := 0
-		e2 := displayerWidth - 1
-		tick := 0
-		for {
-			select {
-			case <-ticker.C:
-				if tick == 60 {
-					w.Done()
-					return
-				}
-				tick++
-				display.Line2().Write(line2[s2:e2])
-				s2 = (s2 + 1) % l2
-				e2 = s2 + (displayerWidth - 1)
-				if e2 > l2 {
-					e2 = l2
-				}
-			}
-		}
-	}()
-	w.Wait()
+	writeWithScrolling()
 
 	// Shutdown
 	display.Clear()

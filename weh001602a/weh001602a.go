@@ -100,10 +100,11 @@ func (d *Display) Off() {
 // Write writes string translated to Western European font table 2
 func (d *Display) Write(txt string) *Display {
 	for _, char := range txt {
-		// code 32 to 126 from font table matchs exactly ASCII
 		switch {
 		case char >= 32 && char <= 126:
-			d.sendData(uint8(char)) // font table matches exactly ASCII
+			d.sendData(uint8(char)) // code 32 to 126 from font table matchs exactly ASCII
+		case char == 216:
+			d.sendData(174) // Ø
 		case char == 224:
 			d.sendData(133) // à
 		case char == 226:
@@ -122,10 +123,14 @@ func (d *Display) Write(txt string) *Display {
 			d.sendData(140) // î
 		case char == 239:
 			d.sendData(139) // ï
+		case char == 241:
+			d.sendData(155) // ñ
 		case char == 244:
 			d.sendData(148) // ô
 		case char == 246:
 			d.sendData(149) // ö
+		case char == 248:
+			d.sendData(175) // ø
 		case char == 249:
 			d.sendData(151) // ù
 		case char == 251:
