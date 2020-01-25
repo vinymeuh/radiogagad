@@ -141,6 +141,8 @@ func (d *Display) Write(txt string) *Display {
 			d.sendData(152) // ÿ
 		case char == 231:
 			d.sendData(135) // ç
+		default:
+			d.sendData(159) // ¿
 		}
 	}
 	return d

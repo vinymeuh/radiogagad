@@ -32,7 +32,7 @@ func rightAligned(txt string) string {
 func writeAccentedCharacters() {
 	display.Clear()
 	display.Line1().Write("àâäéèêëïîôöùûüÿç")
-	display.Line2().Write("ñØø")
+	display.Line2().Write("ñØøあ")
 	time.Sleep(3 * time.Second)
 }
 
