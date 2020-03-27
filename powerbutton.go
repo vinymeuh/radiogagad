@@ -29,12 +29,16 @@ func powerButton(msgch chan string, pinBootOk, pinShutdown, pinSoftShutdown gpio
 		return
 	}
 
-	// poweroff for Alpine Linux, shutdown for Raspbian
 	var CmdShutdown string
-	if _, err := os.Stat("/sbin/shutdown"); os.IsNotExist(err) {
-		CmdShutdown = "poweroff"
+	if config.PowerButton.ShutdownCmd != "" {
+		CmdShutdown = config.PowerButton.ShutdownCmd
 	} else {
-		CmdShutdown = "/sbin/shutdown -h -P now"
+		// try to auto detect
+		if _, err := os.Stat("/sbin/shutdown"); os.IsNotExist(err) {
+			CmdShutdown = "/sbin/poweroff" // Alpine Linux
+		} else {
+			CmdShutdown = "/sbin/shutdown -h -P now" // Raspbian
+		}
 	}
 	msgch <- fmt.Sprintf("Shutdown command is '%s'", CmdShutdown)
 

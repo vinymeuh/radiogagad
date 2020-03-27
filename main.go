@@ -17,6 +17,8 @@ import (
 	"periph.io/x/periph/host"
 )
 
+const confFile = "/etc/radiogagad.yml"
+
 const (
 	// power button pinout
 	gpioBootOk       = "GPIO22"
@@ -32,6 +34,8 @@ const (
 )
 
 var (
+	// configuration
+	config Config = NewConfig()
 	// logger for main goroutine
 	logmsg *log.Logger
 	// variables set at build time
@@ -52,11 +56,16 @@ func main() {
 	logmsg = log.New(os.Stdout, "", 0)
 	logmsg.Printf("Starting radiogagad %s built %s using %s (%s/%s)\n", buildVersion, buildDate, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 
-	server := os.Getenv("RGGD_MPD_SERVER")
-	if server == "" {
-		server = "localhost:6600"
+	// load configuration file if any
+	err := config.LoadFromFile(confFile)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			logmsg.Printf("Unable to read configuration file: %v\n", err)
+			os.Exit(1)
+		}
+		logmsg.Printf("No configuration file found, we will use the default values\n")
 	}
-	logmsg.Printf("Using MPD server address %s\n", server)
+	logmsg.Printf("Using MPD server address %s\n", config.MPD.Server)
 
 	// this channel will be used by goroutines to return messages to main
 	var logch = make(chan string, 32) // buffered channel can hold up to 32 messages before block
@@ -86,16 +95,18 @@ func main() {
 	}
 
 	// launches the goroutine responsible for the power button
-	go powerButton(logch, pin(gpioBootOk), pin(gpioShutdown), pin(gpioSoftShutdown))
+	if config.PowerButton.Enabled == true {
+		go powerButton(logch, pin(gpioBootOk), pin(gpioShutdown), pin(gpioSoftShutdown))
+	}
 
 	// launches the goroutine responsible for starting playback of a playlist
 	playlists := strings.Split(os.Getenv("RGGD_STARTUP_PLAYLISTS"), ",")
 	if len(playlists) > 0 && playlists[0] != "" {
-		go starter(server, playlists, logch)
+		go starter(config.MPD.Server, playlists, logch)
 	}
 
 	// launches the goroutines which manage the display
-	go mpdFetcher(server, mpdinfo, logch)
+	go mpdFetcher(config.MPD.Server, mpdinfo, logch)
 	go displayer(mpdinfo, stopscr, &clrscr, logch, pin(gpioRS), pin(gpioE), pin(gpioD4), pin(gpioD5), pin(gpioD6), pin(gpioD7))
 
 	// main loop waits for messages from goroutines
