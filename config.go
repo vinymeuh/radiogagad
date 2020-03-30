@@ -17,6 +17,12 @@ type Config struct {
 	PowerButton struct {
 		Enabled     bool   `yaml:"enabled"`
 		ShutdownCmd string `yaml:"shutdown_cmd"`
+		Chip        string `yaml:"chip"`
+		Lines       struct {
+			BootOk       int `yaml:"boot_ok"`
+			Shutdown     int `yaml:"shutdown"`
+			SoftShutdown int `yaml:"soft_shutdown"`
+		} `yaml:"lines"`
 	} `yaml:"powerbutton"`
 }
 
@@ -24,7 +30,12 @@ type Config struct {
 func NewConfig() Config {
 	var c Config
 	c.MPD.Server = "localhost:6600"
+
 	c.PowerButton.Enabled = true
+	c.PowerButton.Chip = "/dev/gpiochip0"
+	c.PowerButton.Lines.BootOk = 22
+	c.PowerButton.Lines.Shutdown = 17
+	c.PowerButton.Lines.SoftShutdown = 4
 	return c
 }
 

@@ -15,15 +15,13 @@ import (
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/host"
+
+	"github.com/vinymeuh/chardevgpio"
 )
 
 const confFile = "/etc/radiogagad.yml"
 
 const (
-	// power button pinout
-	gpioBootOk       = "GPIO22"
-	gpioShutdown     = "GPIO17"
-	gpioSoftShutdown = "GPIO4"
 	// winstar weh001602a display
 	gpioRS = "GPIO7"
 	gpioE  = "GPIO8"
@@ -88,15 +86,21 @@ func main() {
 		os.Exit(0)
 	}()
 
-	// initialize periph.io
+	// initialize GPIO chip
 	if _, err := host.Init(); err != nil {
 		logmsg.Printf("Failed to call host.Init(): %v", err)
 		os.Exit(1)
 	}
 
+	chip, err := chardevgpio.Open(config.PowerButton.Chip)
+	if err != nil {
+		logmsg.Printf("Failed to call gpio.Open(\"%s\"): %v", config.PowerButton.Chip, err)
+		os.Exit(1)
+	}
+
 	// launches the goroutine responsible for the power button
 	if config.PowerButton.Enabled == true {
-		go powerButton(logch, pin(gpioBootOk), pin(gpioShutdown), pin(gpioSoftShutdown))
+		go powerButton(logch, chip)
 	}
 
 	// launches the goroutine responsible for starting playback of a playlist
