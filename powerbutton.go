@@ -16,12 +16,11 @@ import (
 func powerButton(msgch chan string, chip chardevgpio.Chip) {
 
 	// set BootOk to High to stop power button flashes
-	lineBootOk, err := chip.RequestDataLine(config.PowerButton.Lines.BootOk, "bootok", chardevgpio.LineOut)
+	lineBootOk, err := chip.RequestOutputLine(config.PowerButton.Lines.BootOk, 1, "bootok")
 	if err != nil {
 		msgch <- fmt.Sprintf("Failed to setup line BootOk: %v", err)
 		return
 	}
-	lineBootOk.SetValue(1)
 
 	// set shutdownCmd
 	var shutdownCmd string
