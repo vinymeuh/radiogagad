@@ -12,24 +12,10 @@ import (
 	"sync"
 	"syscall"
 
-	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/gpio/gpioreg"
-	"periph.io/x/periph/host"
-
 	"github.com/vinymeuh/chardevgpio"
 )
 
 const confFile = "/etc/radiogagad.yml"
-
-const (
-	// winstar weh001602a display
-	gpioRS = "GPIO7"
-	gpioE  = "GPIO8"
-	gpioD4 = "GPIO25"
-	gpioD5 = "GPIO24"
-	gpioD6 = "GPIO23"
-	gpioD7 = "GPIO27"
-)
 
 var (
 	// configuration
@@ -40,15 +26,6 @@ var (
 	buildVersion string
 	buildDate    string
 )
-
-func pin(name string) gpio.PinIO {
-	p := gpioreg.ByName(name)
-	if p == nil {
-		logmsg.Printf("Failed to find pin %s", name)
-		os.Exit(1)
-	}
-	return p
-}
 
 func main() {
 	logmsg = log.New(os.Stdout, "", 0)
@@ -87,11 +64,6 @@ func main() {
 	}()
 
 	// initialize GPIO chip
-	if _, err := host.Init(); err != nil {
-		logmsg.Printf("Failed to call host.Init(): %v", err)
-		os.Exit(1)
-	}
-
 	chip, err := chardevgpio.Open(config.PowerButton.Chip)
 	if err != nil {
 		logmsg.Printf("Failed to call gpio.Open(\"%s\"): %v", config.PowerButton.Chip, err)
@@ -111,7 +83,7 @@ func main() {
 
 	// launches the goroutines which manage the display
 	go mpdFetcher(config.MPD.Server, mpdinfo, logch)
-	go displayer(mpdinfo, stopscr, &clrscr, logch, pin(gpioRS), pin(gpioE), pin(gpioD4), pin(gpioD5), pin(gpioD6), pin(gpioD7))
+	go displayer(chip, mpdinfo, stopscr, &clrscr, logch)
 
 	// main loop waits for messages from goroutines
 	for {

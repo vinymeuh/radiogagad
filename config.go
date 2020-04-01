@@ -24,6 +24,16 @@ type Config struct {
 			SoftShutdown int `yaml:"soft_shutdown"`
 		} `yaml:"lines"`
 	} `yaml:"powerbutton"`
+	Display struct {
+		Lines struct {
+			RS  int `yaml:"rs"`
+			E   int `yaml:"e"`
+			DB4 int `yaml:"db4"`
+			DB5 int `yaml:"db5"`
+			DB6 int `yaml:"db6"`
+			DB7 int `yaml:"db7"`
+		} `yaml:"lines"`
+	} `yaml:"display"`
 }
 
 // NewConfig creates a new Config with default values
@@ -36,6 +46,13 @@ func NewConfig() Config {
 	c.PowerButton.Lines.BootOk = 22
 	c.PowerButton.Lines.Shutdown = 17
 	c.PowerButton.Lines.SoftShutdown = 4
+
+	c.Display.Lines.RS = 7
+	c.Display.Lines.E = 8
+	c.Display.Lines.DB4 = 25
+	c.Display.Lines.DB5 = 24
+	c.Display.Lines.DB6 = 23
+	c.Display.Lines.DB7 = 27
 	return c
 }
 
