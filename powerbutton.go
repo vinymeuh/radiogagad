@@ -21,6 +21,7 @@ func powerButton(msgch chan string, chip chardevgpio.Chip) {
 		msgch <- fmt.Sprintf("Failed to setup line BootOk: %v", err)
 		return
 	}
+	defer lineBootOk.Close()
 
 	// set shutdownCmd
 	var shutdownCmd string
