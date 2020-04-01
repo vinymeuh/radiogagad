@@ -9,56 +9,60 @@ import (
 	"os/exec"
 	"strings"
 
-	"periph.io/x/periph/conn/gpio"
+	"github.com/vinymeuh/chardevgpio"
 )
 
 // powerButton is responsible to start a system shutdown when button is fired
-func powerButton(msgch chan string, pinBootOk, pinShutdown, pinSoftShutdown gpio.PinIO) {
-	if err := pinBootOk.Out(gpio.High); err != nil {
-		msgch <- fmt.Sprintf("Failed to setup pinBootOk: %v", err)
+func powerButton(msgch chan string, chip chardevgpio.Chip) {
+
+	// set BootOk to High to stop power button flashes
+	lineBootOk, err := chip.RequestOutputLine(config.PowerButton.Lines.BootOk, 1, "bootok")
+	if err != nil {
+		msgch <- fmt.Sprintf("Failed to setup line BootOk: %v", err)
 		return
 	}
+	defer lineBootOk.Close()
 
-	if err := pinShutdown.In(gpio.PullDown, gpio.RisingEdge); err != nil {
-		msgch <- fmt.Sprintf("Failed to setup pinShutdown: %v", err)
-		return
-	}
-
-	if err := pinSoftShutdown.In(gpio.PullDown, gpio.RisingEdge); err != nil {
-		msgch <- fmt.Sprintf("Failed to setup pinSoftShutdown: %v", err)
-		return
-	}
-
-	// poweroff for Alpine Linux, shutdown for Raspbian
-	var CmdShutdown string
-	if _, err := os.Stat("/sbin/shutdown"); os.IsNotExist(err) {
-		CmdShutdown = "poweroff"
+	// set shutdownCmd
+	var shutdownCmd string
+	if config.PowerButton.ShutdownCmd != "" {
+		shutdownCmd = config.PowerButton.ShutdownCmd
 	} else {
-		CmdShutdown = "/sbin/shutdown -h -P now"
+		// try to auto detect
+		if _, err := os.Stat("/sbin/shutdown"); os.IsNotExist(err) {
+			shutdownCmd = "/sbin/poweroff" // Alpine Linux
+		} else {
+			shutdownCmd = "/sbin/shutdown -h -P now" // Raspbian
+		}
 	}
-	msgch <- fmt.Sprintf("Shutdown command is '%s'", CmdShutdown)
+	msgch <- fmt.Sprintf("Shutdown command is '%s'", shutdownCmd)
 
-	go func() {
-		for pinShutdown.WaitForEdge(-1) {
-			msgch <- "Shutdown requested by power button"
-			cmdA := strings.Split(CmdShutdown, " ")
-			cmd := exec.Command(cmdA[0], cmdA[1:]...)
-			cmd.Stdout = nil
-			cmd.Stderr = nil
-			cmd.Run()
-		}
-	}()
+	// EventLineWatcher waits for the shutdown button to fire
+	watcher, err := chardevgpio.NewEventLineWatcher()
+	if err != nil {
+		msgch <- fmt.Sprintf("chardevgpio.NewEventLineWatcher: %v", err)
+		return
+	}
+	defer watcher.Close()
 
-	go func() {
-		for pinSoftShutdown.WaitForEdge(-1) {
-			msgch <- "Soft shutdown requested by power button"
-			cmdA := strings.Split(CmdShutdown, " ")
-			cmd := exec.Command(cmdA[0], cmdA[1:]...)
-			cmd.Stdout = nil
-			cmd.Stderr = nil
-			cmd.Run()
-		}
-	}()
+	if err := watcher.AddEvent(chip, config.PowerButton.Lines.Shutdown, "shutdown", chardevgpio.RisingEdge); err != nil {
+		msgch <- fmt.Sprintf("Failed to setup line Shutdown: %v", err)
+		return
+	}
 
-	msgch <- "Power button successfully setup"
+	if err := watcher.AddEvent(chip, config.PowerButton.Lines.SoftShutdown, "softshutdown", chardevgpio.RisingEdge); err != nil {
+		msgch <- fmt.Sprintf("Failed to setup line SoftShutdown: %v", err)
+		return
+	}
+
+	if err := watcher.Wait(func(chardevgpio.GPIOEventData) {}); err != nil {
+		msgch <- fmt.Sprintf("watcher.Wait: %v", err)
+		return
+	}
+	msgch <- "Shutdown requested by power button"
+	cmdA := strings.Split(shutdownCmd, " ")
+	cmd := exec.Command(cmdA[0], cmdA[1:]...)
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	cmd.Run()
 }

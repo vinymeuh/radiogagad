@@ -12,26 +12,14 @@ import (
 	"sync"
 	"syscall"
 
-	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/gpio/gpioreg"
-	"periph.io/x/periph/host"
+	"github.com/vinymeuh/chardevgpio"
 )
 
-const (
-	// power button pinout
-	gpioBootOk       = "GPIO22"
-	gpioShutdown     = "GPIO17"
-	gpioSoftShutdown = "GPIO4"
-	// winstar weh001602a display
-	gpioRS = "GPIO7"
-	gpioE  = "GPIO8"
-	gpioD4 = "GPIO25"
-	gpioD5 = "GPIO24"
-	gpioD6 = "GPIO23"
-	gpioD7 = "GPIO27"
-)
+const confFile = "/etc/radiogagad.yml"
 
 var (
+	// configuration
+	config Config = NewConfig()
 	// logger for main goroutine
 	logmsg *log.Logger
 	// variables set at build time
@@ -39,24 +27,20 @@ var (
 	buildDate    string
 )
 
-func pin(name string) gpio.PinIO {
-	p := gpioreg.ByName(name)
-	if p == nil {
-		logmsg.Printf("Failed to find pin %s", name)
-		os.Exit(1)
-	}
-	return p
-}
-
 func main() {
 	logmsg = log.New(os.Stdout, "", 0)
 	logmsg.Printf("Starting radiogagad %s built %s using %s (%s/%s)\n", buildVersion, buildDate, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 
-	server := os.Getenv("RGGD_MPD_SERVER")
-	if server == "" {
-		server = "localhost:6600"
+	// load configuration file if any
+	err := config.LoadFromFile(confFile)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			logmsg.Printf("Unable to read configuration file: %v\n", err)
+			os.Exit(1)
+		}
+		logmsg.Printf("No configuration file found, we will use the default values\n")
 	}
-	logmsg.Printf("Using MPD server address %s\n", server)
+	logmsg.Printf("Using MPD server address %s\n", config.MPD.Server)
 
 	// this channel will be used by goroutines to return messages to main
 	var logch = make(chan string, 32) // buffered channel can hold up to 32 messages before block
@@ -79,24 +63,27 @@ func main() {
 		os.Exit(0)
 	}()
 
-	// initialize periph.io
-	if _, err := host.Init(); err != nil {
-		logmsg.Printf("Failed to call host.Init(): %v", err)
+	// initialize GPIO chip
+	chip, err := chardevgpio.Open(config.PowerButton.Chip)
+	if err != nil {
+		logmsg.Printf("Failed to call gpio.Open(\"%s\"): %v", config.PowerButton.Chip, err)
 		os.Exit(1)
 	}
 
 	// launches the goroutine responsible for the power button
-	go powerButton(logch, pin(gpioBootOk), pin(gpioShutdown), pin(gpioSoftShutdown))
+	if config.PowerButton.Enabled == true {
+		go powerButton(logch, chip)
+	}
 
 	// launches the goroutine responsible for starting playback of a playlist
 	playlists := strings.Split(os.Getenv("RGGD_STARTUP_PLAYLISTS"), ",")
 	if len(playlists) > 0 && playlists[0] != "" {
-		go starter(server, playlists, logch)
+		go starter(config.MPD.Server, playlists, logch)
 	}
 
 	// launches the goroutines which manage the display
-	go mpdFetcher(server, mpdinfo, logch)
-	go displayer(mpdinfo, stopscr, &clrscr, logch, pin(gpioRS), pin(gpioE), pin(gpioD4), pin(gpioD5), pin(gpioD6), pin(gpioD7))
+	go mpdFetcher(config.MPD.Server, mpdinfo, logch)
+	go displayer(chip, mpdinfo, stopscr, &clrscr, logch)
 
 	// main loop waits for messages from goroutines
 	for {

@@ -8,8 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"periph.io/x/periph/conn/gpio"
-
+	"github.com/vinymeuh/chardevgpio"
 	"github.com/vinymeuh/radiogagad/weh001602a"
 )
 
@@ -46,9 +45,12 @@ var (
 )
 
 // displayer manages the display, mainly showing MPD messages received from MPDFetcher
-func displayer(mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGroup, msgch chan string, pinRS, pinE, pinD4, pinD5, pinD6, pinD7 gpio.PinIO) {
+func displayer(chip chardevgpio.Chip, mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGroup, msgch chan string) {
 	// initialize display
-	display, err := weh001602a.NewDisplay(pinRS, pinE, pinD4, pinD5, pinD6, pinD7)
+	display, err := weh001602a.NewDisplay(chip,
+		config.Display.Lines.RS, config.Display.Lines.E,
+		config.Display.Lines.DB4, config.Display.Lines.DB5,
+		config.Display.Lines.DB6, config.Display.Lines.DB7)
 	if err != nil {
 		msgch <- fmt.Sprintf("Failed to setup weh001602a display: %v", err)
 		return
