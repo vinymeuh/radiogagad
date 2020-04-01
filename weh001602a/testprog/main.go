@@ -1,18 +1,17 @@
 // Copyright 2019 VinyMeuh. All rights reserved.
 // Use of the source code is governed by a MIT-style license that can be found in the LICENSE file.
 //
-// GOOS=linux GOARCH=arm GOARM=6 go build
+// GOOS=linux GOARCH=arm GOARM=7 go build
 package main
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"sync"
 	"time"
 
-	"periph.io/x/periph/conn/gpio/gpioreg"
-	"periph.io/x/periph/host"
-
+	"github.com/vinymeuh/chardevgpio"
 	"github.com/vinymeuh/radiogagad/weh001602a"
 )
 
@@ -144,15 +143,13 @@ type line struct {
 }
 
 func main() {
-	host.Init()
-	display, _ = weh001602a.NewDisplay(
-		gpioreg.ByName("GPIO7"),
-		gpioreg.ByName("GPIO8"),
-		gpioreg.ByName("GPIO25"),
-		gpioreg.ByName("GPIO24"),
-		gpioreg.ByName("GPIO23"),
-		gpioreg.ByName("GPIO27"),
-	)
+	chip, err := chardevgpio.Open("/dev/gpiochip0")
+	if err != nil {
+		fmt.Printf("Failed to open '/dev/gpiochip0': %v", err)
+		os.Exit(1)
+	}
+
+	display, _ = weh001602a.NewDisplay(chip, 7, 8, 25, 24, 23, 27) // Raspdac pinout
 
 	// Send some centred test
 	display.Clear()

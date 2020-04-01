@@ -1,5 +1,7 @@
 github.com/vinymeuh/chardevgpio v0.0.0-20200331224321-bee99a5b118c h1:CwfLAKkn9jrFzextwFl6nMI91UpZH6jQwKUI/uz/ToI=
 github.com/vinymeuh/chardevgpio v0.0.0-20200331224321-bee99a5b118c/go.mod h1:CjPkJuX/6RDjx58tkkY/His+5mw8369XOTTTChFMI5A=
+github.com/vinymeuh/chardevgpio v0.0.0-20200401082432-55ce1062ebc8 h1:skIom3t2I8XdBSZr+cEYaNnGV3Wri2VJ/vkdZ54b0jE=
+github.com/vinymeuh/chardevgpio v0.0.0-20200401082432-55ce1062ebc8/go.mod h1:CjPkJuX/6RDjx58tkkY/His+5mw8369XOTTTChFMI5A=
 golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 h1:uYVVQ9WP/Ds2ROhcaGPeIdVq0RIXVLwsHlnvJ+cT1So=
 golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=

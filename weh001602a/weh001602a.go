@@ -6,42 +6,36 @@ package weh001602a
 import (
 	"time"
 
-	"periph.io/x/periph/conn/gpio"
+	"github.com/vinymeuh/chardevgpio"
 )
 
 // Display is the driver for the Winstar 16x2 Character OLED WEH001602A in 4-bit read-only mode
 type Display struct {
-	rs  gpio.PinIO // Register Select (High=DATA, Low=Instruction Code)
-	e   gpio.PinIO // Enable Signal
-	db4 gpio.PinIO // DB4
-	db5 gpio.PinIO // DB5
-	db6 gpio.PinIO // DB6
-	db7 gpio.PinIO // DB7
+	rs     chardevgpio.DataLine  // Register Select (High=DATA, Low=Instruction Code)
+	e      chardevgpio.DataLine  // Enable Signal
+	db4567 chardevgpio.DataLines // DB4 to DB7
 }
 
 // NewDisplay returns an initialized display
-func NewDisplay(rs, e, db4, db5, db6, db7 gpio.PinIO) (*Display, error) {
-	if err := rs.Out(gpio.Low); err != nil {
-		return nil, err
-	}
-	if err := e.Out(gpio.Low); err != nil {
-		return nil, err
-	}
-	if err := db4.Out(gpio.Low); err != nil {
-		return nil, err
-	}
-	if err := db5.Out(gpio.Low); err != nil {
-		return nil, err
-	}
-	if err := db6.Out(gpio.Low); err != nil {
-		return nil, err
-	}
-	if err := db7.Out(gpio.Low); err != nil {
+func NewDisplay(chip chardevgpio.Chip, rs, e, db4, db5, db6, db7 int) (*Display, error) {
+	lineRS, err := chip.RequestOutputLine(rs, 0, "weh001602a-rs")
+	if err != nil {
 		return nil, err
 	}
 
-	d := Display{rs: rs, e: e, db4: db4, db5: db5, db6: db6, db7: db7}
-	err := d.initialize()
+	lineE, err := chip.RequestOutputLine(e, 0, "weh001602a-e")
+	if err != nil {
+		return nil, err
+	}
+	lineE.SetValue(0)
+
+	linesDB, err := chip.RequestOutputLines([]int{db4, db5, db6, db7}, []int{0, 0, 0, 0}, "weh001602a-db4567")
+	if err != nil {
+		return nil, err
+	}
+
+	d := Display{rs: lineRS, e: lineE, db4567: linesDB}
+	err = d.initialize()
 	return &d, err
 }
 
@@ -200,12 +194,12 @@ func (d *Display) initialize() error {
 
 // sendCommand call write8bits with rs set to LOW
 func (d *Display) sendCommand(bits uint8) {
-	d.write8bits(bits, gpio.Low)
+	d.write8bits(bits, 0)
 }
 
 // sendData call write8bits with rs set to HIGH
 func (d *Display) sendData(bits uint8) {
-	d.write8bits(bits, gpio.High)
+	d.write8bits(bits, 1)
 }
 
 // write8bits write 8 bits in 4-bit mode
@@ -214,47 +208,37 @@ func (d *Display) sendData(bits uint8) {
 // rs controls the register selected
 //   - gpio.Low -> Instruction Register
 //   - gpio.Hihg -> Data Register
-func (d *Display) write8bits(bits uint8, rs gpio.Level) {
-	d.rs.Out(rs)
+func (d *Display) write8bits(bits uint8, rs int) {
+	d.rs.SetValue(rs)
 	d.write4bits(bits)
 	d.write4bits(bits << 4)
 }
 
 // write4bits write the four most significant bits (4-7) to the data pins DB4 to DB7
 func (d *Display) write4bits(bits uint8) {
+	var values [4]int
 	// DB4
-	switch (bits >> 4) & 0x01 {
-	case 0x00:
-		d.db4.Out(gpio.Low)
-	case 0x01:
-		d.db4.Out(gpio.High)
+	if (bits>>4)&0x01 == 0x01 {
+		values[0] = 1
 	}
 	// DB5
-	switch (bits >> 5) & 0x01 {
-	case 0x00:
-		d.db5.Out(gpio.Low)
-	case 0x01:
-		d.db5.Out(gpio.High)
+	if (bits>>5)&0x01 == 0x01 {
+		values[1] = 1
 	}
 	// DB6
-	switch (bits >> 6) & 0x01 {
-	case 0x00:
-		d.db6.Out(gpio.Low)
-	case 0x01:
-		d.db6.Out(gpio.High)
+	if (bits>>6)&0x01 == 0x01 {
+		values[2] = 1
 	}
 	// DB7
-	switch (bits >> 7) & 0x01 {
-	case 0x00:
-		d.db7.Out(gpio.Low)
-	case 0x01:
-		d.db7.Out(gpio.High)
+	if (bits>>7)&0x01 == 0x01 {
+		values[3] = 1
 	}
+	d.db4567.SetValues(values[:])
 
 	// pulse an enable signal on pin E
 	time.Sleep(50 * time.Microsecond)
-	d.e.Out(gpio.High)
+	d.e.SetValue(1)
 	time.Sleep(50 * time.Microsecond)
-	d.e.Out(gpio.Low)
+	d.e.SetValue(0)
 	time.Sleep(50 * time.Microsecond)
 }
