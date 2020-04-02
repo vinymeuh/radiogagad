@@ -44,13 +44,21 @@ var (
 	}
 )
 
+type Display struct {
+	Lines struct {
+		RS  int `yaml:"rs"`
+		E   int `yaml:"e"`
+		DB4 int `yaml:"db4"`
+		DB5 int `yaml:"db5"`
+		DB6 int `yaml:"db6"`
+		DB7 int `yaml:"db7"`
+	} `yaml:"lines"`
+}
+
 // displayer manages the display, mainly showing MPD messages received from MPDFetcher
-func displayer(chip chardevgpio.Chip, mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGroup, msgch chan string) {
+func (d Display) start(chip chardevgpio.Chip, mpdinfo chan mpdInfo, stopscr chan struct{}, clrscr *sync.WaitGroup, msgch chan string) {
 	// initialize display
-	display, err := weh001602a.NewDisplay(chip,
-		config.Display.Lines.RS, config.Display.Lines.E,
-		config.Display.Lines.DB4, config.Display.Lines.DB5,
-		config.Display.Lines.DB6, config.Display.Lines.DB7)
+	display, err := weh001602a.NewDisplay(chip, d.Lines.RS, d.Lines.E, d.Lines.DB4, d.Lines.DB5, d.Lines.DB6, d.Lines.DB7)
 	if err != nil {
 		msgch <- fmt.Sprintf("Failed to setup weh001602a display: %v", err)
 		return

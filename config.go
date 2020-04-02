@@ -14,26 +14,8 @@ type Config struct {
 	MPD struct {
 		Server string `yaml:"host"`
 	} `yaml:"mpd"`
-	PowerButton struct {
-		Enabled     bool   `yaml:"enabled"`
-		ShutdownCmd string `yaml:"shutdown_cmd"`
-		Chip        string `yaml:"chip"`
-		Lines       struct {
-			BootOk       int `yaml:"boot_ok"`
-			Shutdown     int `yaml:"shutdown"`
-			SoftShutdown int `yaml:"soft_shutdown"`
-		} `yaml:"lines"`
-	} `yaml:"powerbutton"`
-	Display struct {
-		Lines struct {
-			RS  int `yaml:"rs"`
-			E   int `yaml:"e"`
-			DB4 int `yaml:"db4"`
-			DB5 int `yaml:"db5"`
-			DB6 int `yaml:"db6"`
-			DB7 int `yaml:"db7"`
-		} `yaml:"lines"`
-	} `yaml:"display"`
+	PowerButton `yaml:"powerbutton"`
+	Display     `yaml:"display"`
 }
 
 // NewConfig creates a new Config with default values

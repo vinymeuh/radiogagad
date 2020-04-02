@@ -18,20 +18,19 @@ import (
 const confFile = "/etc/radiogagad.yml"
 
 var (
-	// configuration
-	config Config = NewConfig()
-	// logger for main goroutine
-	logmsg *log.Logger
 	// variables set at build time
 	buildVersion string
 	buildDate    string
 )
 
 func main() {
+	// logger for main goroutine
+	var logmsg *log.Logger
 	logmsg = log.New(os.Stdout, "", 0)
 	logmsg.Printf("Starting radiogagad %s built %s using %s (%s/%s)\n", buildVersion, buildDate, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 
-	// load configuration file if any
+	// confiugraion
+	var config Config = NewConfig()
 	err := config.LoadFromFile(confFile)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -72,7 +71,7 @@ func main() {
 
 	// launches the goroutine responsible for the power button
 	if config.PowerButton.Enabled == true {
-		go powerButton(logch, chip)
+		go config.PowerButton.start(logch, chip)
 	}
 
 	// launches the goroutine responsible for starting playback of a playlist
@@ -83,7 +82,7 @@ func main() {
 
 	// launches the goroutines which manage the display
 	go mpdFetcher(config.MPD.Server, mpdinfo, logch)
-	go displayer(chip, mpdinfo, stopscr, &clrscr, logch)
+	go config.Display.start(chip, mpdinfo, stopscr, &clrscr, logch)
 
 	// main loop waits for messages from goroutines
 	for {

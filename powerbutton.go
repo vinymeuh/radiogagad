@@ -12,11 +12,20 @@ import (
 	"github.com/vinymeuh/chardevgpio"
 )
 
-// powerButton is responsible to start a system shutdown when button is fired
-func powerButton(msgch chan string, chip chardevgpio.Chip) {
+type PowerButton struct {
+	Enabled     bool   `yaml:"enabled"`
+	ShutdownCmd string `yaml:"shutdown_cmd"`
+	Chip        string `yaml:"chip"`
+	Lines       struct {
+		BootOk       int `yaml:"boot_ok"`
+		Shutdown     int `yaml:"shutdown"`
+		SoftShutdown int `yaml:"soft_shutdown"`
+	} `yaml:"lines"`
+}
 
+func (pb PowerButton) start(msgch chan string, chip chardevgpio.Chip) {
 	// set BootOk to High to stop power button flashes
-	lineBootOk, err := chip.RequestOutputLine(config.PowerButton.Lines.BootOk, 1, "bootok")
+	lineBootOk, err := chip.RequestOutputLine(pb.Lines.BootOk, 1, "bootok")
 	if err != nil {
 		msgch <- fmt.Sprintf("Failed to setup line BootOk: %v", err)
 		return
@@ -25,8 +34,8 @@ func powerButton(msgch chan string, chip chardevgpio.Chip) {
 
 	// set shutdownCmd
 	var shutdownCmd string
-	if config.PowerButton.ShutdownCmd != "" {
-		shutdownCmd = config.PowerButton.ShutdownCmd
+	if pb.ShutdownCmd != "" {
+		shutdownCmd = pb.ShutdownCmd
 	} else {
 		// try to auto detect
 		if _, err := os.Stat("/sbin/shutdown"); os.IsNotExist(err) {
@@ -45,12 +54,12 @@ func powerButton(msgch chan string, chip chardevgpio.Chip) {
 	}
 	defer watcher.Close()
 
-	if err := watcher.AddEvent(chip, config.PowerButton.Lines.Shutdown, "shutdown", chardevgpio.RisingEdge); err != nil {
+	if err := watcher.AddEvent(chip, pb.Lines.Shutdown, "shutdown", chardevgpio.RisingEdge); err != nil {
 		msgch <- fmt.Sprintf("Failed to setup line Shutdown: %v", err)
 		return
 	}
 
-	if err := watcher.AddEvent(chip, config.PowerButton.Lines.SoftShutdown, "softshutdown", chardevgpio.RisingEdge); err != nil {
+	if err := watcher.AddEvent(chip, pb.Lines.SoftShutdown, "softshutdown", chardevgpio.RisingEdge); err != nil {
 		msgch <- fmt.Sprintf("Failed to setup line SoftShutdown: %v", err)
 		return
 	}
