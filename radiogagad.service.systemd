@@ -3,7 +3,6 @@ Description=radiogagad
 After=mpd.service
 
 [Service]
-#Environment="RGGD_STARTUP_PLAYLISTS="
 ExecStart=/usr/local/bin/radiogagad
 
 [Install]

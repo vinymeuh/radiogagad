@@ -1,5 +1,8 @@
 # mpd:
 #   server: "localhost:6600"
+#   startup_playlists:
+#     - playlist1
+#     - playlist2
 # powerbutton:
 #   shutdown_cmd: ""
 #   chip: "/dev/gpiochip0"

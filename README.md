@@ -6,7 +6,6 @@
 [![codecov](https://codecov.io/gh/vinymeuh/radiogagad/branch/master/graph/badge.svg)](https://codecov.io/gh/vinymeuh/radiogagad)
 [![Go Report Card](https://goreportcard.com/badge/github.com/vinymeuh/radiogagad)](https://goreportcard.com/report/github.com/vinymeuh/radiogagad)
 
-
 ## Build and install
 
 First you need a [Go](https://golang.org/dl/) distribution. Then on the build host, targeting a Raspberry Pi 3
@@ -22,12 +21,7 @@ Install by simply copy the binary under ```/usr/local/bin``` and setup the servi
 
 ## Configuration
 
-Some points are configurables using environment variables
-
-| Variable | Usage | Defaults |
-| -------- | ----- | -------- |
-| RGGD_MPD_SERVER | mpd server and port to connect to | localhost:6600 |
-| RGGD_STARTUP_PLAYLISTS | comma separated list of playlists to be tried to load and play at start-up |  |
+Configuration is loaded from ```/etc/radiogagad.yml``` if file exists. See [radiogagad.yml.template](radiogagad.yml.template) for configuration variables names and their default values.
 
 ## Inspirations, links and references
 

@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"strings"
 	"sync"
 	"syscall"
 
@@ -93,17 +92,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	// launches the goroutine responsible for the power button
+	// launches the goroutine responsible to manage the power button
 	go config.PowerButton.start(logch, chip)
 
-	// launches the goroutine responsible for starting playback of a playlist
-	playlists := strings.Split(os.Getenv("RGGD_STARTUP_PLAYLISTS"), ",")
-	if len(playlists) > 0 && playlists[0] != "" {
-		go starter(config.MPD.Server, playlists, logch)
-	}
+	// launches the goroutine responsible to start playback of a playlist
+	go config.MPD.starter(logch)
 
-	// launches the goroutines which manage the display
-	go config.MPD.start(mpdinfo, logch)
+	// launches the goroutine responsible to fetch information from MPD
+	go config.MPD.fetcher(mpdinfo, logch)
+
+	// launches the goroutine which manage the display
 	go config.Display.start(chip, mpdinfo, stopscr, &clrscr, logch)
 
 	// main loop waits for messages from goroutines
