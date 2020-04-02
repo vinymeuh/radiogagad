@@ -1,7 +1,6 @@
 # mpd:
 #   server: "localhost:6600"
 # powerbutton:
-#   enabled: true
 #   shutdown_cmd: ""
 #   chip: "/dev/gpiochip0"
 #   lines:
@@ -9,6 +8,7 @@
 #     shutdown: 17
 #     soft_shutdown: 4
 # display:
+#   chip: "/dev/gpiochip0"
 #   lines:
 #     rs: 7
 #     e: 8

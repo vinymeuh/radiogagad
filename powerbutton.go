@@ -13,14 +13,15 @@ import (
 )
 
 type PowerButton struct {
-	Enabled     bool   `yaml:"enabled"`
-	ShutdownCmd string `yaml:"shutdown_cmd"`
-	Chip        string `yaml:"chip"`
-	Lines       struct {
-		BootOk       int `yaml:"boot_ok"`
-		Shutdown     int `yaml:"shutdown"`
-		SoftShutdown int `yaml:"soft_shutdown"`
-	} `yaml:"lines"`
+	ShutdownCmd string           `yaml:"shutdown_cmd"`
+	Chip        string           `yaml:"chip"`
+	Lines       PowerButtonLines `yaml:"lines"`
+}
+
+type PowerButtonLines struct {
+	BootOk       int `yaml:"boot_ok"`
+	Shutdown     int `yaml:"shutdown"`
+	SoftShutdown int `yaml:"soft_shutdown"`
 }
 
 func (pb PowerButton) start(msgch chan string, chip chardevgpio.Chip) {

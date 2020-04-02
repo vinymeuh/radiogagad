@@ -45,14 +45,17 @@ var (
 )
 
 type Display struct {
-	Lines struct {
-		RS  int `yaml:"rs"`
-		E   int `yaml:"e"`
-		DB4 int `yaml:"db4"`
-		DB5 int `yaml:"db5"`
-		DB6 int `yaml:"db6"`
-		DB7 int `yaml:"db7"`
-	} `yaml:"lines"`
+	Chip  string       `yaml:"chip"`
+	Lines DisplayLines `yaml:"lines"`
+}
+
+type DisplayLines struct {
+	RS  int `yaml:"rs"`
+	E   int `yaml:"e"`
+	DB4 int `yaml:"db4"`
+	DB5 int `yaml:"db5"`
+	DB6 int `yaml:"db6"`
+	DB7 int `yaml:"db7"`
 }
 
 // displayer manages the display, mainly showing MPD messages received from MPDFetcher

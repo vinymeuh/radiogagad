@@ -13,6 +13,7 @@ import (
 	"syscall"
 
 	"github.com/vinymeuh/chardevgpio"
+	"gopkg.in/yaml.v2"
 )
 
 const confFile = "/etc/radiogagad.yml"
@@ -29,8 +30,31 @@ func main() {
 	logmsg = log.New(os.Stdout, "", 0)
 	logmsg.Printf("Starting radiogagad %s built %s using %s (%s/%s)\n", buildVersion, buildDate, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 
-	// confiugraion
-	var config Config = NewConfig()
+	// initialize defaults configuration
+	config := Config{
+		MPD: MPDClient{Server: "localhost:6600"},
+		PowerButton: PowerButton{
+			Chip: "/dev/gpiochip0",
+			Lines: PowerButtonLines{
+				BootOk:       22,
+				Shutdown:     17,
+				SoftShutdown: 4,
+			},
+		},
+		Display: Display{
+			Chip: "/dev/gpiochip0",
+			Lines: DisplayLines{
+				RS:  7,
+				E:   8,
+				DB4: 25,
+				DB5: 24,
+				DB6: 23,
+				DB7: 27,
+			},
+		},
+	}
+
+	// load YAML configuration if exists
 	err := config.LoadFromFile(confFile)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -70,9 +94,7 @@ func main() {
 	}
 
 	// launches the goroutine responsible for the power button
-	if config.PowerButton.Enabled == true {
-		go config.PowerButton.start(logch, chip)
-	}
+	go config.PowerButton.start(logch, chip)
 
 	// launches the goroutine responsible for starting playback of a playlist
 	playlists := strings.Split(os.Getenv("RGGD_STARTUP_PLAYLISTS"), ",")
@@ -81,7 +103,7 @@ func main() {
 	}
 
 	// launches the goroutines which manage the display
-	go mpdFetcher(config.MPD.Server, mpdinfo, logch)
+	go config.MPD.start(mpdinfo, logch)
 	go config.Display.start(chip, mpdinfo, stopscr, &clrscr, logch)
 
 	// main loop waits for messages from goroutines
@@ -89,4 +111,24 @@ func main() {
 		msg := <-logch
 		logmsg.Println(msg)
 	}
+}
+
+// Config is the format of the application's configuration file
+type Config struct {
+	MPD         MPDClient `yaml:"mpd"`
+	PowerButton `yaml:"powerbutton"`
+	Display     `yaml:"display"`
+}
+
+// LoadFromFile fills the Config from a YAML file
+func (c *Config) LoadFromFile(path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	decoder := yaml.NewDecoder(f)
+	err = decoder.Decode(c)
+	return err
 }

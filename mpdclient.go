@@ -10,17 +10,21 @@ import (
 	"github.com/vinymeuh/radiogagad/mpd"
 )
 
-// mpdInfo is the format of messages send by MPDFetcher to Displayer
+type MPDClient struct {
+	Server string `yaml:"host"`
+}
+
+// mpdInfo is the format of messages send by MPDFetcher to Display
 type mpdInfo struct {
 	*mpd.Status
 	*mpd.CurrentSong
 }
 
-// mpdFetcher retrieves messages from the MPD daemon and writes them in a channel as a MPDInfo structure
-func mpdFetcher(addr string, mpdinfo chan mpdInfo, msgch chan string) {
+// start retrieves messages from the MPD daemon and writes them in a channel as a MPDInfo structure
+func (c MPDClient) start(mpdinfo chan mpdInfo, msgch chan string) {
 	previous := mpdInfo{Status: &mpd.Status{}, CurrentSong: &mpd.CurrentSong{}}
 	for {
-		mpc, err := mpd.NewClient(addr)
+		mpc, err := mpd.NewClient(c.Server)
 		if err != nil {
 			msgch <- fmt.Sprintf("MPD server not responding: %s", err)
 			time.Sleep(2 * time.Second)
