@@ -28,7 +28,7 @@ func TestCurrentSongCommand(t *testing.T) {
 	server, client := net.Pipe()
 	go mockMPDServer(t, server)
 
-	mpc, err := mpdConnect(client)
+	mpc, _ := mpdConnect(client)
 
 	song, err := mpc.CurrentSong()
 	if err == nil {
@@ -59,7 +59,7 @@ func TestStatusCommands(t *testing.T) {
 	server, client := net.Pipe()
 	go mockMPDServer(t, server)
 
-	mpc, err := mpdConnect(client)
+	mpc, _ := mpdConnect(client)
 
 	status, err := mpc.Status()
 	if err == nil {
@@ -104,7 +104,7 @@ func TestStatsCommand(t *testing.T) {
 	server, client := net.Pipe()
 	go mockMPDServer(t, server)
 
-	mpc, err := mpdConnect(client)
+	mpc, _ := mpdConnect(client)
 
 	stats, err := mpc.Stats()
 	if err == nil {
@@ -138,9 +138,9 @@ func TestControllingPlaybackCommands(t *testing.T) {
 	server, client := net.Pipe()
 	go mockMPDServer(t, server)
 
-	mpc, err := mpdConnect(client)
+	mpc, _ := mpdConnect(client)
 
-	err = mpc.Next()
+	err := mpc.Next()
 	if err != nil {
 		t.Fatalf("mpc.Next() fails with error %#v", err)
 	}
@@ -195,9 +195,9 @@ func TestStoredPlaylistsCommands(t *testing.T) {
 	server, client := net.Pipe()
 	go mockMPDServer(t, server)
 
-	mpc, err := mpdConnect(client)
+	mpc, _ := mpdConnect(client)
 
-	err = mpc.Load("GreatestHits")
+	err := mpc.Load("GreatestHits")
 	if err != nil {
 		t.Fatalf("mpc.Load(\"GreatestHits\") fails with error %#v", err)
 	}
@@ -212,9 +212,9 @@ func TestConnectionSettingsCommands(t *testing.T) {
 	server, client := net.Pipe()
 	go mockMPDServer(t, server)
 
-	mpc, err := mpdConnect(client)
+	mpc, _ := mpdConnect(client)
 
-	err = mpc.Ping()
+	err := mpc.Ping()
 	if err != nil {
 		t.Fatalf("mpc.Ping() fails with error %#v", err)
 	}
