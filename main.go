@@ -23,6 +23,13 @@ var (
 	buildDate    string
 )
 
+// Config is the format of the application's configuration file
+type Config struct {
+	MPD         MPDClient `yaml:"mpd"`
+	PowerButton `yaml:"powerbutton"`
+	Displayer   `yaml:"display"`
+}
+
 func main() {
 	// logger for main goroutine
 	var logmsg *log.Logger
@@ -40,8 +47,9 @@ func main() {
 				SoftShutdown: 4,
 			},
 		},
-		Display: Display{
-			Chip: "/dev/gpiochip0",
+		Displayer: Displayer{
+			Chip:  "/dev/gpiochip0",
+			Width: 16,
 			Lines: DisplayLines{
 				RS:  7,
 				E:   8,
@@ -102,20 +110,13 @@ func main() {
 	go config.MPD.fetcher(mpdinfo, logch)
 
 	// launches the goroutine which manage the display
-	go config.Display.start(chip, mpdinfo, stopscr, &clrscr, logch)
+	go config.Displayer.start(chip, mpdinfo, stopscr, &clrscr, logch)
 
 	// main loop waits for messages from goroutines
 	for {
 		msg := <-logch
 		logmsg.Println(msg)
 	}
-}
-
-// Config is the format of the application's configuration file
-type Config struct {
-	MPD         MPDClient `yaml:"mpd"`
-	PowerButton `yaml:"powerbutton"`
-	Display     `yaml:"display"`
 }
 
 // LoadFromFile fills the Config from a YAML file

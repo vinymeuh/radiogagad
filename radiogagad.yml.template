@@ -12,6 +12,7 @@
 #     soft_shutdown: 4
 # display:
 #   chip: "/dev/gpiochip0"
+#   line_width: 16
 #   lines:
 #     rs: 7
 #     e: 8
