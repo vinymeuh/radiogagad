@@ -5,17 +5,14 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"strings"
+	"time"
 
 	"github.com/vinymeuh/chardevgpio"
 )
 
 type PowerButton struct {
-	ShutdownCmd string           `yaml:"shutdown_cmd"`
-	Chip        string           `yaml:"chip"`
-	Lines       PowerButtonLines `yaml:"lines"`
+	Chip  string           `yaml:"chip"`
+	Lines PowerButtonLines `yaml:"lines"`
 }
 
 type PowerButtonLines struct {
@@ -33,19 +30,13 @@ func (pb PowerButton) start(msgch chan string, chip chardevgpio.Chip) {
 	}
 	defer lineBootOk.Close()
 
-	// set shutdownCmd
-	var shutdownCmd string
-	if pb.ShutdownCmd != "" {
-		shutdownCmd = pb.ShutdownCmd
-	} else {
-		// try to auto detect
-		if _, err := os.Stat("/sbin/shutdown"); os.IsNotExist(err) {
-			shutdownCmd = "/sbin/poweroff" // Alpine Linux
-		} else {
-			shutdownCmd = "/sbin/shutdown -h -P now" // Raspbian
-		}
+	// set SoftShutdown to Low
+	lineSoftShutdown, err := chip.RequestOutputLine(pb.Lines.SoftShutdown, 0, "softshutdown")
+	if err != nil {
+		msgch <- fmt.Sprintf("Failed to setup line SoftShutdown: %v", err)
+		return
 	}
-	msgch <- fmt.Sprintf("Shutdown command is '%s'", shutdownCmd)
+	defer lineSoftShutdown.Close()
 
 	// EventLineWatcher waits for the shutdown button to fire
 	watcher, err := chardevgpio.NewEventLineWatcher()
@@ -60,19 +51,16 @@ func (pb PowerButton) start(msgch chan string, chip chardevgpio.Chip) {
 		return
 	}
 
-	if err := watcher.AddEvent(chip, pb.Lines.SoftShutdown, "softshutdown", chardevgpio.RisingEdge); err != nil {
-		msgch <- fmt.Sprintf("Failed to setup line SoftShutdown: %v", err)
-		return
-	}
-
 	if err := watcher.Wait(func(chardevgpio.GPIOEventData) {}); err != nil {
 		msgch <- fmt.Sprintf("watcher.Wait: %v", err)
 		return
 	}
+
+	// Shutown sequence
 	msgch <- "Shutdown requested by power button"
-	cmdA := strings.Split(shutdownCmd, " ")
-	cmd := exec.Command(cmdA[0], cmdA[1:]...)
-	cmd.Stdout = nil
-	cmd.Stderr = nil
-	cmd.Run()
+	// TODO: display message on screen
+	// Set SoftShutdown to high for 1 second to trigger poweroff
+	lineSoftShutdown.SetValue(1)
+	time.Sleep(1 * time.Second)
+	lineSoftShutdown.SetValue(0)
 }

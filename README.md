@@ -33,7 +33,15 @@ Configuration is loaded from ```/etc/radiogagad.yml``` if file exists. See [radi
 
 ### Power Button
 
-* [Example implementations from Audiophonics](https://github.com/audiophonics/Raspberry-pwr-management)
+Alogrithm:
+
+* BOOT OK pin must be set to high to stop power button flashes
+* Soft Shutdown pin must be set to low
+* Wait for rising edge on Shutdown pin
+* When button fired, set Soft Shutdown pin to high for 1 second then low to trigger the power off
+
+* [Implementation by Audiophonics](https://github.com/audiophonics/Raspberry-pwr-management)
+* [Implementation by fengalin](https://github.com/fengalin/raspdac-on-osmc/tree/master/power/sbin)
 
 ### MPD
 

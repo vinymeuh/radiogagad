@@ -4,7 +4,6 @@
 #     - playlist1
 #     - playlist2
 # powerbutton:
-#   shutdown_cmd: ""
 #   chip: "/dev/gpiochip0"
 #   lines:
 #     boot_ok: 22
