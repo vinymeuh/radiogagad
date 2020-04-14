@@ -18,10 +18,6 @@ BUILD   = `date +%FT%T%z`
 GOFLAGS = -trimpath
 LDFLAGS = -ldflags "-w -s -X main.buildVersion=${VERSION} -X main.buildDate=${BUILD}"
 
-
-build: ## Build for current host
-	go build ${LDFLAGS} -o ${BINARY}
-
 buildarm6: ## Build for Pi Zero
 	GOOS=linux GOARCH=arm GOARM=6 go build ${LDFLAGS} -o ${BINARY}
 
