@@ -4,6 +4,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -31,6 +33,13 @@ type Config struct {
 }
 
 func main() {
+	version := flag.Bool("version", false, "Print version and exit.")
+	flag.Parse()
+	if *version {
+		fmt.Println(buildVersion)
+		os.Exit(0)
+	}
+
 	// logger for main goroutine
 	var logmsg *log.Logger
 	logmsg = log.New(os.Stdout, "", 0)
