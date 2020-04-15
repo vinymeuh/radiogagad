@@ -44,6 +44,7 @@ func mpdStarter(addr string, playlists []string, logmsg chan string) {
 		logmsg <- fmt.Sprintf("Unable to retrieve MPD state, playlists load aborted (%s)", err)
 		return
 	}
+
 	if status.State == "stop" {
 		logmsg <- fmt.Sprintf("MPD playback is stopped, try to start it")
 		for _, playlist := range playlists {
