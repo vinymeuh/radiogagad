@@ -48,6 +48,13 @@ func main() {
 	}
 	logmsg.Printf("Using MPD server address %s\n", config.MPD.Server)
 
+	// initialize GPIO chip
+	chip, err := chardevgpio.Open(config.PowerButton.Chip)
+	if err != nil {
+		logmsg.Printf("Failed to call gpio.Open(\"%s\"): %v", config.PowerButton.Chip, err)
+		os.Exit(1)
+	}
+
 	// this channel will be used by goroutines to return messages to main
 	var logch = make(chan string, 32) // buffered channel can hold up to 32 messages before block
 	// this channel will be used to exchange data from MPDFetcher to Displayer
@@ -57,30 +64,11 @@ func main() {
 	// this wait group is used for waiting that Displayer clear the screen before exit
 	var clrscr sync.WaitGroup
 
-	// signal handler for SIGTERM & SIGINT
-	var stop = make(chan os.Signal)
-	signal.Notify(stop, syscall.SIGTERM)
-	signal.Notify(stop, syscall.SIGINT)
-	go func() {
-		_ = <-stop
-		// notify Displayer and wait it finished
-		stopscr <- struct{}{}
-		clrscr.Wait()
-		os.Exit(0)
-	}()
-
-	// initialize GPIO chip
-	chip, err := chardevgpio.Open(config.PowerButton.Chip)
-	if err != nil {
-		logmsg.Printf("Failed to call gpio.Open(\"%s\"): %v", config.PowerButton.Chip, err)
-		os.Exit(1)
-	}
-
 	// launches the goroutine responsible to manage the power button
 	go config.PowerButton.start(logch, chip)
 
 	// launches the goroutine responsible to start playback of a playlist
-	go config.MPD.starter(logch)
+	go mpdStarter(config.MPD.Server, config.MPD.StartupPlaylists, logch)
 
 	// launches the goroutine responsible to fetch information from MPD
 	go config.MPD.fetcher(mpdinfo, logch)
@@ -88,9 +76,21 @@ func main() {
 	// launches the goroutine which manage the display
 	go config.Displayer.start(chip, mpdinfo, stopscr, &clrscr, logch)
 
-	// main loop waits for messages from goroutines
+	// signal handler for SIGTERM & SIGINT
+	var shutdown = make(chan os.Signal)
+	signal.Notify(shutdown, syscall.SIGTERM)
+	signal.Notify(shutdown, syscall.SIGINT)
+
+	// main loop
 	for {
-		msg := <-logch
-		logmsg.Println(msg)
+		select {
+		case msg := <-logch:
+			logmsg.Println(msg)
+		case <-shutdown:
+			logmsg.Println("Shutdown requested")
+			stopscr <- struct{}{}
+			clrscr.Wait()
+			os.Exit(0)
+		}
 	}
 }

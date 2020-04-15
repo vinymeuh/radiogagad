@@ -10,11 +10,6 @@ import (
 	"github.com/vinymeuh/radiogagad/mpd"
 )
 
-const (
-	startupMaxRetries        = 10
-	startupRetryDelaySeconds = 2
-)
-
 // mpdInfo is the format of messages send by MPDFetcher to Display
 type mpdInfo struct {
 	*mpd.Status
@@ -61,52 +56,5 @@ func (c MPDClient) fetcher(mpdinfo chan mpdInfo, msgch chan string) {
 	ResetConnection:
 		mpc.Close()
 		msgch <- "MPD server connection closed"
-	}
-}
-
-// starter loads and starts playing a playlist
-// In case of the MPD server is not responding, retry for a maximum of
-// startupMaxRetries spaced by startupRetryDelaySeconds seconds.
-func (c MPDClient) starter(msgch chan string) {
-	var (
-		mpc *mpd.Client
-		err error
-	)
-
-	retry := 1
-	for {
-		if mpc, err = mpd.NewClient(c.Server); err == nil {
-			break
-		}
-		msgch <- fmt.Sprintf("MPD server not responding: %s", err)
-		msgch <- fmt.Sprintf("Waits %ds before retry", startupRetryDelaySeconds)
-		retry++
-		if retry > startupMaxRetries {
-			msgch <- fmt.Sprintf("Unable to contact MPD server after %d retries, we give up", startupMaxRetries)
-			return
-		}
-		time.Sleep(startupRetryDelaySeconds * time.Second)
-	}
-
-	status, err := mpc.Status()
-	if err != nil {
-		msgch <- fmt.Sprintf("Unable to retrieve MPD state, playlists load aborted (%s)", err)
-		return
-	}
-	if status.State == "stop" {
-		msgch <- fmt.Sprintf("MPD playback is stopped, try to start it")
-		for _, playlist := range c.StartupPlaylists {
-			if err := mpc.Load(playlist); err != nil {
-				msgch <- fmt.Sprintf("Failed to load playlist %s (%s)", playlist, err)
-				continue
-			}
-			if err := mpc.Play(-1); err != nil {
-				msgch <- fmt.Sprintf("Failed to start playing playlist %s: %s", playlist, err)
-			} else {
-				msgch <- fmt.Sprintf("Successfully started playing playlist '%s'", playlist)
-				return
-			}
-		}
-		msgch <- "Unable to load ANY playlists"
 	}
 }
