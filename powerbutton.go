@@ -5,48 +5,59 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/vinymeuh/chardevgpio"
 )
 
-func (pb PowerButton) start(msgch chan string, chip chardevgpio.Chip) {
-	// set BootOk to High to stop power button flashes
-	lineBootOk, err := chip.RequestOutputLine(pb.Lines.BootOk, 1, "bootok")
+// any error while initializing a GPIO pin is fatal and cause a stop of the whole program
+func powerButton(chip chardevgpio.Chip, pinBootOk int, pinShutdown int, pinSoftShutdown int, logmsg chan string) {
+	// set pinBootOk to High to stop power button flashes
+	lineBootOk, err := chip.RequestOutputLine(pinBootOk, 1, "bootok")
 	if err != nil {
-		msgch <- fmt.Sprintf("Failed to setup line BootOk: %v", err)
+		logmsg <- fmt.Sprintf("Fatal error, failed to setup line BootOk: %v", err)
+		time.Sleep(1 * time.Second)
+		os.Exit(1)
 		return
 	}
 	defer lineBootOk.Close()
 
-	// set SoftShutdown to Low
-	lineSoftShutdown, err := chip.RequestOutputLine(pb.Lines.SoftShutdown, 0, "softshutdown")
+	// initialize pinSoftShutdown to Low
+	lineSoftShutdown, err := chip.RequestOutputLine(pinSoftShutdown, 0, "softshutdown")
 	if err != nil {
-		msgch <- fmt.Sprintf("Failed to setup line SoftShutdown: %v", err)
+		logmsg <- fmt.Sprintf("Fatal error, failed to setup line SoftShutdown: %v", err)
+		time.Sleep(1 * time.Second)
+		os.Exit(1)
 		return
 	}
 	defer lineSoftShutdown.Close()
 
-	// EventLineWatcher waits for the shutdown button to fire
+	// create an EventLineWatcher for pinShutdown
 	watcher, err := chardevgpio.NewEventLineWatcher()
 	if err != nil {
-		msgch <- fmt.Sprintf("chardevgpio.NewEventLineWatcher: %v", err)
+		logmsg <- fmt.Sprintf("Fatal error, failed to create EventLineWatcher: %v", err)
+		time.Sleep(1 * time.Second)
+		os.Exit(1)
 		return
 	}
 	defer watcher.Close()
 
-	if err := watcher.AddEvent(chip, pb.Lines.Shutdown, "shutdown", chardevgpio.RisingEdge); err != nil {
-		msgch <- fmt.Sprintf("Failed to setup line Shutdown: %v", err)
+	if err := watcher.AddEvent(chip, pinShutdown, "shutdown", chardevgpio.RisingEdge); err != nil {
+		logmsg <- fmt.Sprintf("Fatal error, failed to setup line Shutdown: %v", err)
+		os.Exit(1)
 		return
 	}
 
+	// block waiting for the button triggering
 	if err := watcher.Wait(func(chardevgpio.GPIOEventData) {}); err != nil {
-		msgch <- fmt.Sprintf("watcher.Wait: %v", err)
+		logmsg <- fmt.Sprintf("Fatal error, failed to wait forbutton triggering: %v", err)
+		os.Exit(1)
 		return
 	}
 
-	// Shutown sequence
-	msgch <- "Shutdown requested by power button"
+	// power off sequence
+	logmsg <- "Poweroff requested"
 	// TODO: display message on screen
 	// Set SoftShutdown to high for 1 second to trigger poweroff
 	lineSoftShutdown.SetValue(1)

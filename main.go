@@ -39,7 +39,9 @@ func main() {
 	// load configuration
 	config := defaultConfiguration()
 	err := config.loadFromFile(confFile)
-	if err != nil {
+	if err == nil {
+		logmsg.Printf("Using configuration file %s\n", confFile)
+	} else {
 		if !os.IsNotExist(err) {
 			logmsg.Printf("Unable to read configuration file: %v\n", err)
 			os.Exit(1)
@@ -64,7 +66,7 @@ func main() {
 	var clrscr sync.WaitGroup
 
 	// launches the goroutine responsible to manage the power button
-	go config.PowerButton.start(logch, chip)
+	go powerButton(chip, config.PowerButton.Lines.BootOk, config.PowerButton.Lines.Shutdown, config.PowerButton.Lines.SoftShutdown, logch)
 
 	// launches the goroutine responsible to start playback of a playlist
 	go mpdStarter(config.MPD.Server, config.MPD.StartupPlaylists, logch)
