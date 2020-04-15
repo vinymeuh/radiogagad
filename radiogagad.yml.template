@@ -3,18 +3,14 @@
 #   startup_playlists:
 #     - playlist1
 #     - playlist2
-# powerbutton:
-#   chip: "/dev/gpiochip0"
-#   lines:
-#     boot_ok: 22
-#     shutdown: 17
-#     soft_shutdown: 4
-# display:
-#   chip: "/dev/gpiochip0"
-#   lines:
-#     rs: 7
-#     e: 8
-#     db4: 25
-#     db5: 24
-#     db6: 23
-#     db7: 27
+# chip: 
+#   device: "/dev/gpiochip0"
+#   bootok: 22
+#   shutdown: 17
+#   soft_shutdown: 4
+#   rs: 7
+#   e: 8
+#   db4: 25
+#   db5: 24
+#   db6: 23
+#   db7: 27

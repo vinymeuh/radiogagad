@@ -51,9 +51,9 @@ func main() {
 	logmsg.Printf("Using MPD server address %s\n", config.MPD.Server)
 
 	// initialize GPIO chip
-	chip, err := chardevgpio.Open(config.PowerButton.Chip)
+	chip, err := chardevgpio.Open(config.Chip.Device)
 	if err != nil {
-		logmsg.Printf("Failed to call gpio.Open(\"%s\"): %v", config.PowerButton.Chip, err)
+		logmsg.Printf("Failed to call gpio.Open(\"%s\"): %v", config.Chip.Device, err)
 		os.Exit(1)
 	}
 
@@ -61,13 +61,7 @@ func main() {
 	var logch = make(chan string, 32) // buffered channel can hold up to 32 messages before block
 
 	// launches the goroutine responsible to manage the power button
-	go powerButton(
-		chip,
-		config.PowerButton.Lines.BootOk,
-		config.PowerButton.Lines.Shutdown,
-		config.PowerButton.Lines.SoftShutdown,
-		logch,
-	)
+	go powerButton(chip, config.Chip.BootOk, config.Chip.Shutdown, config.Chip.SoftShutdown, logch)
 
 	// launches the goroutine responsible to start playback of a playlist
 	go mpdStarter(config.MPD.Server, config.MPD.StartupPlaylists, logch)
@@ -79,14 +73,7 @@ func main() {
 	// launches the goroutine which manage the display
 	var stopscr = make(chan struct{}) // used to notify Displayer before shutting down
 	var clrscr sync.WaitGroup         //used for waiting that Displayer clear the screen before exit
-	go displayer(
-		chip,
-		config.Displayer.Lines.RS,
-		config.Displayer.Lines.E,
-		config.Displayer.Lines.DB4,
-		config.Displayer.Lines.DB5,
-		config.Displayer.Lines.DB6,
-		config.Displayer.Lines.DB7,
+	go displayer(chip, config.Chip.RS, config.Chip.E, config.Chip.DB4, config.Chip.DB5, config.Chip.DB6, config.Chip.DB7,
 		mpdinfo, stopscr, &clrscr,
 		logch,
 	)

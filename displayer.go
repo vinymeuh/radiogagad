@@ -13,7 +13,9 @@ import (
 	"github.com/vinymeuh/radiogagad/weh001602a"
 )
 
-const displayerLineWidth = 16
+const (
+	displayerLineWidth = 16
+)
 
 // custom characters for weh001602a
 const (
@@ -46,8 +48,6 @@ var (
 
 // Displayer manages the display, mainly showing MPD messages received from MPDClient.fetcher
 type Displayer struct {
-	Chip    string              `yaml:"chip"`
-	Lines   DisplayLines        `yaml:"lines"`
 	display *weh001602a.Display // useful to commands impacting both lines (Clear, Off)
 	line1   line
 	line2   line

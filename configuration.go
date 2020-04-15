@@ -12,28 +12,17 @@ import (
 const confFile = "/etc/radiogagad.yml"
 
 type configuration struct {
-	MPD         MPDClient `yaml:"mpd"`
-	PowerButton `yaml:"powerbutton"`
-	Displayer   `yaml:"display"`
+	MPD  MPDClient  `yaml:"mpd"`
+	Chip ChipPinout `yaml:"chip"`
 }
 
-type MPDClient struct {
-	Server           string   `yaml:"host"`
-	StartupPlaylists []string `yaml:"startup_playlists"`
-}
-
-type PowerButton struct {
-	Chip  string           `yaml:"chip"`
-	Lines PowerButtonLines `yaml:"lines"`
-}
-
-type PowerButtonLines struct {
-	BootOk       int `yaml:"boot_ok"`
+type ChipPinout struct {
+	Device string `yaml:"device"`
+	// PowerButton
+	BootOk       int `yaml:"bootok"`
 	Shutdown     int `yaml:"shutdown"`
-	SoftShutdown int `yaml:"soft_shutdown"`
-}
-
-type DisplayLines struct {
+	SoftShutdown int `yaml:"softshutdown"`
+	// Displayer
 	RS  int `yaml:"rs"`
 	E   int `yaml:"e"`
 	DB4 int `yaml:"db4"`
@@ -42,27 +31,25 @@ type DisplayLines struct {
 	DB7 int `yaml:"db7"`
 }
 
+type MPDClient struct {
+	Server           string   `yaml:"host"`
+	StartupPlaylists []string `yaml:"startup_playlists"`
+}
+
 func defaultConfiguration() configuration {
 	return configuration{
 		MPD: MPDClient{Server: "localhost:6600"},
-		PowerButton: PowerButton{
-			Chip: "/dev/gpiochip0",
-			Lines: PowerButtonLines{
-				BootOk:       22,
-				Shutdown:     17,
-				SoftShutdown: 4,
-			},
-		},
-		Displayer: Displayer{
-			Chip: "/dev/gpiochip0",
-			Lines: DisplayLines{
-				RS:  7,
-				E:   8,
-				DB4: 25,
-				DB5: 24,
-				DB6: 23,
-				DB7: 27,
-			},
+		Chip: ChipPinout{
+			Device:       "/dev/gpiochip0",
+			BootOk:       22,
+			Shutdown:     17,
+			SoftShutdown: 4,
+			RS:           7,
+			E:            8,
+			DB4:          25,
+			DB5:          24,
+			DB6:          23,
+			DB7:          27,
 		},
 	}
 }
