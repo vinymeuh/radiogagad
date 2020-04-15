@@ -10,19 +10,19 @@ import (
 	"github.com/vinymeuh/radiogagad/mpd"
 )
 
-// mpdInfo is the format of messages send by MPDFetcher to Display
+// mpdInfo is the format of messages send by mpdFetcher to the main goroutine
 type mpdInfo struct {
 	*mpd.Status
 	*mpd.CurrentSong
 }
 
-// fetcher retrieves messages from the MPD daemon and writes them in a channel as a MPDInfo structure
-func (c MPDClient) fetcher(mpdinfo chan mpdInfo, msgch chan string) {
+// mpdFetcher retrieves messages from the MPD daemon and writes them in a channel as a MPDInfo structure
+func mpdFetcher(addr string, mpdinfo chan mpdInfo, logmsg chan string) {
 	previous := mpdInfo{Status: &mpd.Status{}, CurrentSong: &mpd.CurrentSong{}}
 	for {
-		mpc, err := mpd.NewClient(c.Server)
+		mpc, err := mpd.NewClient(addr)
 		if err != nil {
-			msgch <- fmt.Sprintf("MPD server not responding: %s", err)
+			logmsg <- fmt.Sprintf("MPD server not responding: %s", err)
 			time.Sleep(2 * time.Second)
 			continue
 		}
@@ -30,13 +30,13 @@ func (c MPDClient) fetcher(mpdinfo chan mpdInfo, msgch chan string) {
 		for {
 			status, err := mpc.Status()
 			if err != nil {
-				msgch <- fmt.Sprintf("Failed to retrieve MPD Status: %s", err)
+				logmsg <- fmt.Sprintf("Failed to retrieve MPD Status: %s", err)
 				goto ResetConnection
 			}
 
 			cs, err := mpc.CurrentSong()
 			if err != nil {
-				msgch <- fmt.Sprintf("Failed to retrieve MPD CurrentSong: %s", err)
+				logmsg <- fmt.Sprintf("Failed to retrieve MPD CurrentSong: %s", err)
 				goto ResetConnection
 			}
 
@@ -55,6 +55,6 @@ func (c MPDClient) fetcher(mpdinfo chan mpdInfo, msgch chan string) {
 		}
 	ResetConnection:
 		mpc.Close()
-		msgch <- "MPD server connection closed"
+		logmsg <- "MPD server connection closed"
 	}
 }

@@ -57,8 +57,7 @@ func main() {
 
 	// this channel will be used by goroutines to return messages to main
 	var logch = make(chan string, 32) // buffered channel can hold up to 32 messages before block
-	// this channel will be used to exchange data from MPDFetcher to Displayer
-	var mpdinfo = make(chan mpdInfo, 1)
+
 	// this channel is used to notify Displayer before shutting down
 	var stopscr = make(chan struct{})
 	// this wait group is used for waiting that Displayer clear the screen before exit
@@ -71,7 +70,8 @@ func main() {
 	go mpdStarter(config.MPD.Server, config.MPD.StartupPlaylists, logch)
 
 	// launches the goroutine responsible to fetch information from MPD
-	go config.MPD.fetcher(mpdinfo, logch)
+	var mpdinfo = make(chan mpdInfo, 1) // used to return data from MPDFetcher to main goroutine
+	go mpdFetcher(config.MPD.Server, mpdinfo, logch)
 
 	// launches the goroutine which manage the display
 	go config.Displayer.start(chip, mpdinfo, stopscr, &clrscr, logch)
