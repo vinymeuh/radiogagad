@@ -14,25 +14,16 @@ import (
 	"syscall"
 
 	"github.com/vinymeuh/chardevgpio"
-	"gopkg.in/yaml.v2"
 )
 
-const confFile = "/etc/radiogagad.yml"
-
+// variables set at build time
 var (
-	// variables set at build time
 	buildVersion string
 	buildDate    string
 )
 
-// Config is the format of the application's configuration file
-type Config struct {
-	MPD         MPDClient `yaml:"mpd"`
-	PowerButton `yaml:"powerbutton"`
-	Displayer   `yaml:"display"`
-}
-
 func main() {
+	// if requested print only build version then exit
 	version := flag.Bool("version", false, "Print version and exit.")
 	flag.Parse()
 	if *version {
@@ -40,38 +31,14 @@ func main() {
 		os.Exit(0)
 	}
 
-	// logger for main goroutine
+	// initialize logger
 	var logmsg *log.Logger
 	logmsg = log.New(os.Stdout, "", 0)
 	logmsg.Printf("Starting radiogagad %s built %s using %s (%s/%s)\n", buildVersion, buildDate, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 
-	// initialize defaults configuration
-	config := Config{
-		MPD: MPDClient{Server: "localhost:6600"},
-		PowerButton: PowerButton{
-			Chip: "/dev/gpiochip0",
-			Lines: PowerButtonLines{
-				BootOk:       22,
-				Shutdown:     17,
-				SoftShutdown: 4,
-			},
-		},
-		Displayer: Displayer{
-			Chip:  "/dev/gpiochip0",
-			Width: 16,
-			Lines: DisplayLines{
-				RS:  7,
-				E:   8,
-				DB4: 25,
-				DB5: 24,
-				DB6: 23,
-				DB7: 27,
-			},
-		},
-	}
-
-	// load YAML configuration if exists
-	err := config.LoadFromFile(confFile)
+	// load configuration
+	config := defaultConfiguration()
+	err := config.loadFromFile(confFile)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			logmsg.Printf("Unable to read configuration file: %v\n", err)
@@ -126,17 +93,4 @@ func main() {
 		msg := <-logch
 		logmsg.Println(msg)
 	}
-}
-
-// LoadFromFile fills the Config from a YAML file
-func (c *Config) LoadFromFile(path string) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	decoder := yaml.NewDecoder(f)
-	err = decoder.Decode(c)
-	return err
 }

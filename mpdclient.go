@@ -15,11 +15,6 @@ const (
 	startupRetryDelaySeconds = 2
 )
 
-type MPDClient struct {
-	Server           string   `yaml:"host"`
-	StartupPlaylists []string `yaml:"startup_playlists"`
-}
-
 // mpdInfo is the format of messages send by MPDFetcher to Display
 type mpdInfo struct {
 	*mpd.Status

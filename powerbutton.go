@@ -10,17 +10,6 @@ import (
 	"github.com/vinymeuh/chardevgpio"
 )
 
-type PowerButton struct {
-	Chip  string           `yaml:"chip"`
-	Lines PowerButtonLines `yaml:"lines"`
-}
-
-type PowerButtonLines struct {
-	BootOk       int `yaml:"boot_ok"`
-	Shutdown     int `yaml:"shutdown"`
-	SoftShutdown int `yaml:"soft_shutdown"`
-}
-
 func (pb PowerButton) start(msgch chan string, chip chardevgpio.Chip) {
 	// set BootOk to High to stop power button flashes
 	lineBootOk, err := chip.RequestOutputLine(pb.Lines.BootOk, 1, "bootok")
