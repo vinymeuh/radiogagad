@@ -33,6 +33,15 @@ type PowerButtonLines struct {
 	SoftShutdown int `yaml:"soft_shutdown"`
 }
 
+type DisplayLines struct {
+	RS  int `yaml:"rs"`
+	E   int `yaml:"e"`
+	DB4 int `yaml:"db4"`
+	DB5 int `yaml:"db5"`
+	DB6 int `yaml:"db6"`
+	DB7 int `yaml:"db7"`
+}
+
 func defaultConfiguration() configuration {
 	return configuration{
 		MPD: MPDClient{Server: "localhost:6600"},
@@ -45,8 +54,7 @@ func defaultConfiguration() configuration {
 			},
 		},
 		Displayer: Displayer{
-			Chip:  "/dev/gpiochip0",
-			Width: 16,
+			Chip: "/dev/gpiochip0",
 			Lines: DisplayLines{
 				RS:  7,
 				E:   8,

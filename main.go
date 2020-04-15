@@ -60,13 +60,14 @@ func main() {
 	// this channel will be used by goroutines to return messages to main
 	var logch = make(chan string, 32) // buffered channel can hold up to 32 messages before block
 
-	// this channel is used to notify Displayer before shutting down
-	var stopscr = make(chan struct{})
-	// this wait group is used for waiting that Displayer clear the screen before exit
-	var clrscr sync.WaitGroup
-
 	// launches the goroutine responsible to manage the power button
-	go powerButton(chip, config.PowerButton.Lines.BootOk, config.PowerButton.Lines.Shutdown, config.PowerButton.Lines.SoftShutdown, logch)
+	go powerButton(
+		chip,
+		config.PowerButton.Lines.BootOk,
+		config.PowerButton.Lines.Shutdown,
+		config.PowerButton.Lines.SoftShutdown,
+		logch,
+	)
 
 	// launches the goroutine responsible to start playback of a playlist
 	go mpdStarter(config.MPD.Server, config.MPD.StartupPlaylists, logch)
@@ -76,7 +77,19 @@ func main() {
 	go mpdFetcher(config.MPD.Server, mpdinfo, logch)
 
 	// launches the goroutine which manage the display
-	go config.Displayer.start(chip, mpdinfo, stopscr, &clrscr, logch)
+	var stopscr = make(chan struct{}) // used to notify Displayer before shutting down
+	var clrscr sync.WaitGroup         //used for waiting that Displayer clear the screen before exit
+	go displayer(
+		chip,
+		config.Displayer.Lines.RS,
+		config.Displayer.Lines.E,
+		config.Displayer.Lines.DB4,
+		config.Displayer.Lines.DB5,
+		config.Displayer.Lines.DB6,
+		config.Displayer.Lines.DB7,
+		mpdinfo, stopscr, &clrscr,
+		logch,
+	)
 
 	// signal handler for SIGTERM & SIGINT
 	var shutdown = make(chan os.Signal)
