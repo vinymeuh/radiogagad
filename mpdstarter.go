@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	startupMaxRetries        = 10
-	startupRetryDelaySeconds = 2
+	mpdStarterMaxRetries = 10
+	mpdStarterRetryDelay = 2 * time.Second
 )
 
 // mpdStarter loads and starts playing a playlist
@@ -30,13 +30,13 @@ func mpdStarter(addr string, playlists []string, logmsg chan string) {
 			break
 		}
 		logmsg <- fmt.Sprintf("MPD server not responding: %s", err)
-		logmsg <- fmt.Sprintf("Waits %ds before retry", startupRetryDelaySeconds)
+		logmsg <- fmt.Sprintf("Waits %ds before retry", mpdStarterRetryDelay)
 		retry++
-		if retry > startupMaxRetries {
-			logmsg <- fmt.Sprintf("Unable to contact MPD server after %d retries, we give up", startupMaxRetries)
+		if retry > mpdStarterMaxRetries {
+			logmsg <- fmt.Sprintf("Unable to contact MPD server after %d retries, we give up", mpdStarterMaxRetries)
 			return
 		}
-		time.Sleep(startupRetryDelaySeconds * time.Second)
+		time.Sleep(mpdStarterRetryDelay)
 	}
 
 	status, err := mpc.Status()
