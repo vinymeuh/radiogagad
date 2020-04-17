@@ -4,7 +4,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"time"
 
 	"github.com/vinymeuh/radiogagad/mpd"
@@ -17,12 +17,12 @@ type mpdInfo struct {
 }
 
 // mpdFetcher retrieves messages from the MPD daemon and writes them in a channel as a MPDInfo structure
-func mpdFetcher(addr string, mpdinfo chan mpdInfo, logmsg chan string) {
+func mpdFetcher(addr string, mpdChan chan mpdInfo, logger *log.Logger) {
 	previous := mpdInfo{Status: &mpd.Status{}, CurrentSong: &mpd.CurrentSong{}}
 	for {
 		mpc, err := mpd.NewClient(addr)
 		if err != nil {
-			logmsg <- fmt.Sprintf("MPD server not responding: %s", err)
+			logger.Printf("MPD server not responding: %s", err)
 			time.Sleep(2 * time.Second)
 			continue
 		}
@@ -30,13 +30,13 @@ func mpdFetcher(addr string, mpdinfo chan mpdInfo, logmsg chan string) {
 		for {
 			status, err := mpc.Status()
 			if err != nil {
-				logmsg <- fmt.Sprintf("Failed to retrieve MPD Status: %s", err)
+				logger.Printf("Failed to retrieve MPD Status: %s", err)
 				goto ResetConnection
 			}
 
 			cs, err := mpc.CurrentSong()
 			if err != nil {
-				logmsg <- fmt.Sprintf("Failed to retrieve MPD CurrentSong: %s", err)
+				logger.Printf("Failed to retrieve MPD CurrentSong: %s", err)
 				goto ResetConnection
 			}
 
@@ -46,7 +46,7 @@ func mpdFetcher(addr string, mpdinfo chan mpdInfo, logmsg chan string) {
 			if current.Status.State != previous.Status.State ||
 				current.CurrentSong.Name != previous.CurrentSong.Name ||
 				current.CurrentSong.Title != previous.CurrentSong.Title {
-				mpdinfo <- current
+				mpdChan <- current
 				previous = current
 			}
 
@@ -55,6 +55,6 @@ func mpdFetcher(addr string, mpdinfo chan mpdInfo, logmsg chan string) {
 		}
 	ResetConnection:
 		mpc.Close()
-		logmsg <- "MPD server connection closed"
+		logger.Printf("MPD server connection closed")
 	}
 }

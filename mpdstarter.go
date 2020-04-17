@@ -4,7 +4,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"time"
 
 	"github.com/vinymeuh/radiogagad/mpd"
@@ -18,7 +18,7 @@ const (
 // mpdStarter loads and starts playing a playlist
 // In case of the MPD server is not responding, retry for a maximum of
 // startupMaxRetries spaced by startupRetryDelaySeconds seconds.
-func mpdStarter(addr string, playlists []string, logmsg chan string) {
+func mpdStarter(addr string, playlists []string, logger *log.Logger) {
 	var (
 		mpc *mpd.Client
 		err error
@@ -29,11 +29,11 @@ func mpdStarter(addr string, playlists []string, logmsg chan string) {
 		if mpc, err = mpd.NewClient(addr); err == nil {
 			break
 		}
-		logmsg <- fmt.Sprintf("MPD server not responding: %s", err)
-		logmsg <- fmt.Sprintf("Waits %ds before retry", mpdStarterRetryDelay)
+		logger.Printf("MPD server not responding: %s", err)
+		logger.Printf("Waits %ds before retry", mpdStarterRetryDelay)
 		retry++
 		if retry > mpdStarterMaxRetries {
-			logmsg <- fmt.Sprintf("Unable to contact MPD server after %d retries, we give up", mpdStarterMaxRetries)
+			logger.Printf("Unable to contact MPD server after %d retries, we give up", mpdStarterMaxRetries)
 			return
 		}
 		time.Sleep(mpdStarterRetryDelay)
@@ -41,24 +41,24 @@ func mpdStarter(addr string, playlists []string, logmsg chan string) {
 
 	status, err := mpc.Status()
 	if err != nil {
-		logmsg <- fmt.Sprintf("Unable to retrieve MPD state, playlists load aborted (%s)", err)
+		logger.Printf("Unable to retrieve MPD state, playlists load aborted (%s)", err)
 		return
 	}
 
 	if status.State == "stop" {
-		logmsg <- fmt.Sprintf("MPD playback is stopped, try to start it")
+		logger.Printf("MPD playback is stopped, try to start it")
 		for _, playlist := range playlists {
 			if err := mpc.Load(playlist); err != nil {
-				logmsg <- fmt.Sprintf("Failed to load playlist %s (%s)", playlist, err)
+				logger.Printf("Failed to load playlist %s (%s)", playlist, err)
 				continue
 			}
 			if err := mpc.Play(-1); err != nil {
-				logmsg <- fmt.Sprintf("Failed to start playing playlist %s: %s", playlist, err)
+				logger.Printf("Failed to start playing playlist %s: %s", playlist, err)
 			} else {
-				logmsg <- fmt.Sprintf("Successfully started playing playlist '%s'", playlist)
+				logger.Printf("Successfully started playing playlist '%s'", playlist)
 				return
 			}
 		}
-		logmsg <- "Unable to load ANY playlists"
+		logger.Printf("Unable to load ANY playlists")
 	}
 }

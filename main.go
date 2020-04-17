@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"sync"
 	"syscall"
 
 	"github.com/vinymeuh/chardevgpio"
@@ -32,51 +31,44 @@ func main() {
 	}
 
 	// initialize logger
-	var logmsg *log.Logger
-	logmsg = log.New(os.Stdout, "", 0)
-	logmsg.Printf("Starting radiogagad %s built %s using %s (%s/%s)\n", buildVersion, buildDate, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+	var logger *log.Logger
+	logger = log.New(os.Stdout, "", 0)
+	logger.Printf("Starting radiogagad %s built %s using %s (%s/%s)", buildVersion, buildDate, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 
 	// load configuration
 	config := defaultConfiguration()
 	err := config.loadFromFile(confFile)
 	if err == nil {
-		logmsg.Printf("Using configuration file %s\n", confFile)
+		logger.Printf("Using configuration file %s", confFile)
 	} else {
 		if !os.IsNotExist(err) {
-			logmsg.Printf("Unable to read configuration file: %v\n", err)
+			logger.Printf("Unable to read configuration file: %v", err)
 			os.Exit(1)
 		}
-		logmsg.Printf("No configuration file found, we will use the default values\n")
+		logger.Printf("No configuration file found, we will use the default values")
 	}
-	logmsg.Printf("Using MPD server address %s\n", config.MPD.Server)
+	logger.Printf("Using MPD server address %s", config.MPD.Server)
 
 	// initialize GPIO chip
 	chip, err := chardevgpio.Open(config.Chip.Device)
 	if err != nil {
-		logmsg.Printf("Failed to call gpio.Open(\"%s\"): %v", config.Chip.Device, err)
+		logger.Printf("Failed to call gpio.Open(\"%s\"): %v", config.Chip.Device, err)
 		os.Exit(1)
 	}
 
-	// this channel will be used by goroutines to return messages to main
-	var logch = make(chan string, 32) // buffered channel can hold up to 32 messages before block
-
 	// launches the goroutine responsible to manage the power button
-	go powerButton(chip, config.Chip.BootOk, config.Chip.Shutdown, config.Chip.SoftShutdown, logch)
+	go powerButton(chip, config.Chip.BootOk, config.Chip.Shutdown, config.Chip.SoftShutdown, logger)
 
 	// launches the goroutine responsible to start playback of a playlist
-	go mpdStarter(config.MPD.Server, config.MPD.StartupPlaylists, logch)
+	go mpdStarter(config.MPD.Server, config.MPD.StartupPlaylists, logger)
 
 	// launches the goroutine responsible to fetch information from MPD
-	var mpdinfo = make(chan mpdInfo, 1) // used to return data from MPDFetcher to main goroutine
-	go mpdFetcher(config.MPD.Server, mpdinfo, logch)
+	var mpdChan = make(chan mpdInfo, 1) // used to retrieve data from MPDFetcher
+	go mpdFetcher(config.MPD.Server, mpdChan, logger)
 
 	// launches the goroutine which manage the display
-	var stopscr = make(chan struct{}) // used to notify Displayer before shutting down
-	var clrscr sync.WaitGroup         //used for waiting that Displayer clear the screen before exit
-	go displayer(chip, config.Chip.RS, config.Chip.E, config.Chip.DB4, config.Chip.DB5, config.Chip.DB6, config.Chip.DB7,
-		mpdinfo, stopscr, &clrscr,
-		logch,
-	)
+	var dispChan = make(chan displayCmd, 1) // used to send command to displayer
+	go displayer(chip, config.Chip.RS, config.Chip.E, config.Chip.DB4, config.Chip.DB5, config.Chip.DB6, config.Chip.DB7, dispChan, logger)
 
 	// signal handler for SIGTERM & SIGINT
 	var shutdown = make(chan os.Signal)
@@ -84,15 +76,36 @@ func main() {
 	signal.Notify(shutdown, syscall.SIGINT)
 
 	// main loop
+	dispcmd := displayCmd{state: "stop"}
 	for {
+		dispChan <- dispcmd
 		select {
-		case msg := <-logch:
-			logmsg.Println(msg)
+		//-- receive informations from mpdFetcher --//
+		case mpdinfo := <-mpdChan:
+			switch mpdinfo.State {
+			case "play":
+				dispcmd.state = "play"
+				switch mpdinfo.File[0:4] {
+				case "http":
+					logger.Printf("Play radio='%s', title='%s'", mpdinfo.Name, mpdinfo.Title)
+					dispcmd.line1 = mpdinfo.Name
+					dispcmd.line2 = mpdinfo.Title
+				default:
+					logger.Printf("Play artist='%s', album='%s', title='%s', %d/%d", mpdinfo.Artist, mpdinfo.Album, mpdinfo.Title, mpdinfo.Song+1, mpdinfo.PlaylistLength)
+					dispcmd.line1 = mpdinfo.Artist
+					dispcmd.line2 = mpdinfo.Title
+				}
+			case "pause":
+				logger.Printf("Player paused")
+				dispcmd.state = "pause"
+			default:
+				logger.Printf("Player stopped")
+				dispcmd.state = "stop"
+			}
+		//-- shutdown requested by SIGTERM/SIGINT (displayer will finish the program) --//
 		case <-shutdown:
-			logmsg.Println("Shutdown requested")
-			stopscr <- struct{}{}
-			clrscr.Wait()
-			os.Exit(0)
+			logger.Println("Shutdown requested")
+			dispcmd.state = "shutdown"
 		}
 	}
 }
