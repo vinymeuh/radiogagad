@@ -10,29 +10,19 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"sync"
 	"syscall"
 
 	"github.com/vinymeuh/chardevgpio"
-	"gopkg.in/yaml.v2"
 )
 
-const confFile = "/etc/radiogagad.yml"
-
+// variables set at build time
 var (
-	// variables set at build time
 	buildVersion string
 	buildDate    string
 )
 
-// Config is the format of the application's configuration file
-type Config struct {
-	MPD         MPDClient `yaml:"mpd"`
-	PowerButton `yaml:"powerbutton"`
-	Displayer   `yaml:"display"`
-}
-
 func main() {
+	// if requested print only build version then exit
 	version := flag.Bool("version", false, "Print version and exit.")
 	flag.Parse()
 	if *version {
@@ -40,103 +30,82 @@ func main() {
 		os.Exit(0)
 	}
 
-	// logger for main goroutine
-	var logmsg *log.Logger
-	logmsg = log.New(os.Stdout, "", 0)
-	logmsg.Printf("Starting radiogagad %s built %s using %s (%s/%s)\n", buildVersion, buildDate, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+	// initialize logger
+	var logger *log.Logger
+	logger = log.New(os.Stdout, "", 0)
+	logger.Printf("Starting radiogagad %s built %s using %s (%s/%s)", buildVersion, buildDate, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 
-	// initialize defaults configuration
-	config := Config{
-		MPD: MPDClient{Server: "localhost:6600"},
-		PowerButton: PowerButton{
-			Chip: "/dev/gpiochip0",
-			Lines: PowerButtonLines{
-				BootOk:       22,
-				Shutdown:     17,
-				SoftShutdown: 4,
-			},
-		},
-		Displayer: Displayer{
-			Chip:  "/dev/gpiochip0",
-			Width: 16,
-			Lines: DisplayLines{
-				RS:  7,
-				E:   8,
-				DB4: 25,
-				DB5: 24,
-				DB6: 23,
-				DB7: 27,
-			},
-		},
-	}
-
-	// load YAML configuration if exists
-	err := config.LoadFromFile(confFile)
-	if err != nil {
+	// load configuration
+	config := defaultConfiguration()
+	err := config.loadFromFile(confFile)
+	if err == nil {
+		logger.Printf("Using configuration file %s", confFile)
+	} else {
 		if !os.IsNotExist(err) {
-			logmsg.Printf("Unable to read configuration file: %v\n", err)
+			logger.Printf("Unable to read configuration file: %v", err)
 			os.Exit(1)
 		}
-		logmsg.Printf("No configuration file found, we will use the default values\n")
+		logger.Printf("No configuration file found, we will use the default values")
 	}
-	logmsg.Printf("Using MPD server address %s\n", config.MPD.Server)
-
-	// this channel will be used by goroutines to return messages to main
-	var logch = make(chan string, 32) // buffered channel can hold up to 32 messages before block
-	// this channel will be used to exchange data from MPDFetcher to Displayer
-	var mpdinfo = make(chan mpdInfo, 1)
-	// this channel is used to notify Displayer before shutting down
-	var stopscr = make(chan struct{})
-	// this wait group is used for waiting that Displayer clear the screen before exit
-	var clrscr sync.WaitGroup
-
-	// signal handler for SIGTERM & SIGINT
-	var stop = make(chan os.Signal)
-	signal.Notify(stop, syscall.SIGTERM)
-	signal.Notify(stop, syscall.SIGINT)
-	go func() {
-		_ = <-stop
-		// notify Displayer and wait it finished
-		stopscr <- struct{}{}
-		clrscr.Wait()
-		os.Exit(0)
-	}()
+	logger.Printf("Using MPD server address %s", config.MPD.Server)
 
 	// initialize GPIO chip
-	chip, err := chardevgpio.Open(config.PowerButton.Chip)
+	chip, err := chardevgpio.Open(config.Chip.Device)
 	if err != nil {
-		logmsg.Printf("Failed to call gpio.Open(\"%s\"): %v", config.PowerButton.Chip, err)
+		logger.Printf("Failed to call gpio.Open(\"%s\"): %v", config.Chip.Device, err)
 		os.Exit(1)
 	}
 
 	// launches the goroutine responsible to manage the power button
-	go config.PowerButton.start(logch, chip)
+	go powerButton(chip, config.Chip.BootOk, config.Chip.Shutdown, config.Chip.SoftShutdown, logger)
 
 	// launches the goroutine responsible to start playback of a playlist
-	go config.MPD.starter(logch)
+	go mpdStarter(config.MPD.Server, config.MPD.StartupPlaylists, logger)
 
 	// launches the goroutine responsible to fetch information from MPD
-	go config.MPD.fetcher(mpdinfo, logch)
+	var mpdChan = make(chan mpdInfo, 1) // used to retrieve data from MPDFetcher
+	go mpdFetcher(config.MPD.Server, mpdChan, logger)
 
 	// launches the goroutine which manage the display
-	go config.Displayer.start(chip, mpdinfo, stopscr, &clrscr, logch)
+	var dispChan = make(chan displayCmd, 1) // used to send command to displayer
+	go displayer(chip, config.Chip.RS, config.Chip.E, config.Chip.DB4, config.Chip.DB5, config.Chip.DB6, config.Chip.DB7, dispChan, logger)
 
-	// main loop waits for messages from goroutines
+	// signal handler for SIGTERM & SIGINT
+	var shutdown = make(chan os.Signal)
+	signal.Notify(shutdown, syscall.SIGTERM)
+	signal.Notify(shutdown, syscall.SIGINT)
+
+	// main loop
+	dispcmd := displayCmd{state: "stop"}
 	for {
-		msg := <-logch
-		logmsg.Println(msg)
+		dispChan <- dispcmd
+		select {
+		//-- receive informations from mpdFetcher --//
+		case mpdinfo := <-mpdChan:
+			switch mpdinfo.State {
+			case "play":
+				dispcmd.state = "play"
+				switch mpdinfo.File[0:4] {
+				case "http":
+					logger.Printf("Play radio='%s', title='%s'", mpdinfo.Name, mpdinfo.Title)
+					dispcmd.line1 = mpdinfo.Name
+					dispcmd.line2 = mpdinfo.Title
+				default:
+					logger.Printf("Play artist='%s', album='%s', title='%s', %d/%d", mpdinfo.Artist, mpdinfo.Album, mpdinfo.Title, mpdinfo.Song+1, mpdinfo.PlaylistLength)
+					dispcmd.line1 = mpdinfo.Artist
+					dispcmd.line2 = mpdinfo.Title
+				}
+			case "pause":
+				logger.Printf("Player paused")
+				dispcmd.state = "pause"
+			default:
+				logger.Printf("Player stopped")
+				dispcmd.state = "stop"
+			}
+		//-- shutdown requested by SIGTERM/SIGINT (displayer will finish the program) --//
+		case <-shutdown:
+			logger.Println("Shutdown requested")
+			dispcmd.state = "shutdown"
+		}
 	}
-}
-
-// LoadFromFile fills the Config from a YAML file
-func (c *Config) LoadFromFile(path string) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	decoder := yaml.NewDecoder(f)
-	err = decoder.Decode(c)
-	return err
 }
