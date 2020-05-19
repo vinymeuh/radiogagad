@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/vinymeuh/chardevgpio"
+	gpio "github.com/vinymeuh/chardevgpio"
 	"github.com/vinymeuh/radiogagad/weh001602a"
 )
 
@@ -27,7 +27,7 @@ type displayCmd struct {
 	line2 string
 }
 
-func displayer(chip chardevgpio.Chip, pinRS int, pinE int, pinDB4 int, pinDB5 int, pinDB6 int, pinDB7 int, dispChan chan displayCmd, logger *log.Logger) {
+func displayer(chip gpio.Chip, pinRS int, pinE int, pinDB4 int, pinDB5 int, pinDB6 int, pinDB7 int, dispChan chan displayCmd, logger *log.Logger) {
 	var err error
 
 	// initialize display

@@ -6,36 +6,35 @@ package weh001602a
 import (
 	"time"
 
-	"github.com/vinymeuh/chardevgpio"
+	gpio "github.com/vinymeuh/chardevgpio"
 )
 
 // Display is the driver for the Winstar 16x2 Character OLED WEH001602A in 4-bit read-only mode
 type Display struct {
-	rs     chardevgpio.DataLine  // Register Select (High=DATA, Low=Instruction Code)
-	e      chardevgpio.DataLine  // Enable Signal
-	db4567 chardevgpio.DataLines // DB4 to DB7
+	rs     *gpio.HandleRequest // Register Select (High=DATA, Low=Instruction Code)
+	e      *gpio.HandleRequest // Enable Signal
+	db4567 *gpio.HandleRequest // DB4 to DB7
 }
 
 // NewDisplay returns an initialized display
-func NewDisplay(chip chardevgpio.Chip, rs, e, db4, db5, db6, db7 int) (*Display, error) {
-	lineRS, err := chip.RequestOutputLine(rs, 0, "weh001602a-rs")
-	if err != nil {
+func NewDisplay(chip gpio.Chip, rs, e, db4, db5, db6, db7 int) (*Display, error) {
+	lineRS := gpio.NewHandleRequest([]int{rs}, gpio.HandleRequestOutput).WithConsumer("weh001602a-rs").WithDefaults([]int{0})
+	if err := chip.RequestLines(lineRS); err != nil {
 		return nil, err
 	}
 
-	lineE, err := chip.RequestOutputLine(e, 0, "weh001602a-e")
-	if err != nil {
+	lineE := gpio.NewHandleRequest([]int{e}, gpio.HandleRequestOutput).WithConsumer("weh001602a-e").WithDefaults([]int{0})
+	if err := chip.RequestLines(lineE); err != nil {
 		return nil, err
 	}
-	lineE.SetValue(0)
 
-	linesDB, err := chip.RequestOutputLines([]int{db4, db5, db6, db7}, []int{0, 0, 0, 0}, "weh001602a-db4567")
-	if err != nil {
+	linesDB := gpio.NewHandleRequest([]int{db4, db5, db6, db7}, gpio.HandleRequestOutput).WithConsumer("weh001602a-db4567").WithDefaults([]int{0, 0, 0, 0})
+	if err := chip.RequestLines(linesDB); err != nil {
 		return nil, err
 	}
 
 	d := Display{rs: lineRS, e: lineE, db4567: linesDB}
-	err = d.initialize()
+	err := d.initialize()
 	return &d, err
 }
 
@@ -206,10 +205,10 @@ func (d *Display) sendData(bits uint8) {
 //  - character and control data are transferred as pairs of 4-bit "nibbles" on the upper data pins, DB7-DB4.
 //  - the four most significant bits (7-4) must be written first, followed by the four least significant bits (3-0).
 // rs controls the register selected
-//   - gpio.Low -> Instruction Register
-//   - gpio.Hihg -> Data Register
+//   - 0 -> Instruction Register
+//   - 1 -> Data Register
 func (d *Display) write8bits(bits uint8, rs int) {
-	d.rs.SetValue(rs)
+	d.rs.Write(rs)
 	d.write4bits(bits)
 	d.write4bits(bits << 4)
 }
@@ -233,12 +232,12 @@ func (d *Display) write4bits(bits uint8) {
 	if (bits>>7)&0x01 == 0x01 {
 		values[3] = 1
 	}
-	d.db4567.SetValues(values[:])
+	d.db4567.Write(values[0], values[1], values[2], values[3])
 
 	// pulse an enable signal on pin E
 	time.Sleep(50 * time.Microsecond)
-	d.e.SetValue(1)
+	d.e.Write(1)
 	time.Sleep(50 * time.Microsecond)
-	d.e.SetValue(0)
+	d.e.Write(0)
 	time.Sleep(50 * time.Microsecond)
 }

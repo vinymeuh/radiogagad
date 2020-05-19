@@ -7,46 +7,46 @@ import (
 	"log"
 	"time"
 
-	"github.com/vinymeuh/chardevgpio"
+	gpio "github.com/vinymeuh/chardevgpio"
 )
 
 // any error while initializing a GPIO pin is fatal and cause a stop of the whole program
-func powerButton(chip chardevgpio.Chip, pinBootOk int, pinShutdown int, pinSoftShutdown int, logger *log.Logger) {
+func powerButton(chip gpio.Chip, pinBootOk int, pinShutdown int, pinSoftShutdown int, logger *log.Logger) {
 	// set pinBootOk to High to stop power button flashes
-	lineBootOk, err := chip.RequestOutputLine(pinBootOk, 1, "bootok")
-	if err != nil {
+	lineBootOk := gpio.NewHandleRequest([]int{pinBootOk}, gpio.HandleRequestOutput).WithConsumer("bootok").WithDefaults([]int{1})
+	if err := chip.RequestLines(lineBootOk); err != nil {
 		logger.Fatalf("Fatal error, failed to setup line BootOk: %v", err)
 	}
 	defer lineBootOk.Close()
 
 	// initialize pinSoftShutdown to Low
-	lineSoftShutdown, err := chip.RequestOutputLine(pinSoftShutdown, 0, "softshutdown")
-	if err != nil {
+	lineSoftShutdown := gpio.NewHandleRequest([]int{pinSoftShutdown}, gpio.HandleRequestOutput).WithConsumer("softshutdown").WithDefaults([]int{0})
+	if err := chip.RequestLines(lineSoftShutdown); err != nil {
 		logger.Fatalf("Fatal error, failed to setup line SoftShutdown: %v", err)
 	}
 	defer lineSoftShutdown.Close()
 
-	// create an EventLineWatcher for pinShutdown
-	watcher, err := chardevgpio.NewEventLineWatcher()
+	// create a LineWatcher for pinShutdown
+	watcher, err := gpio.NewLineWatcher()
 	if err != nil {
-		logger.Fatalf("Fatal error, failed to create EventLineWatcher: %v", err)
+		logger.Fatalf("Fatal error, failed to create LineWatcher: %v", err)
 	}
 	defer watcher.Close()
 
-	if err := watcher.AddEvent(chip, pinShutdown, "shutdown", chardevgpio.RisingEdge); err != nil {
+	if err := watcher.Add(chip, pinShutdown, gpio.RisingEdge, "shutdown"); err != nil {
 		logger.Fatalf("Fatal error, failed to setup line Shutdown: %v", err)
 	}
 
 	// block waiting for the button triggering
-	if err := watcher.Wait(func(chardevgpio.GPIOEventData) {}); err != nil {
-		logger.Fatalf("Fatal error, failed to wait forbutton triggering: %v", err)
+	if _, err := watcher.Wait(); err != nil {
+		logger.Fatalf("Fatal error, failed to wait for button triggering: %v", err)
 	}
 
 	// power off sequence
 	logger.Print("Poweroff requested")
 	// TODO: display message on screen
 	// Set SoftShutdown to high for 1 second to trigger poweroff
-	lineSoftShutdown.SetValue(1)
+	lineSoftShutdown.Write(1)
 	time.Sleep(1 * time.Second)
-	lineSoftShutdown.SetValue(0)
+	lineSoftShutdown.Write(0)
 }

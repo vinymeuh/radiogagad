@@ -12,7 +12,7 @@ import (
 	"runtime"
 	"syscall"
 
-	"github.com/vinymeuh/chardevgpio"
+	gpio "github.com/vinymeuh/chardevgpio"
 )
 
 // variables set at build time
@@ -50,7 +50,7 @@ func main() {
 	logger.Printf("Using MPD server address %s", config.MPD.Server)
 
 	// initialize GPIO chip
-	chip, err := chardevgpio.Open(config.Chip.Device)
+	chip, err := gpio.NewChip(config.Chip.Device)
 	if err != nil {
 		logger.Printf("Failed to call gpio.Open(\"%s\"): %v", config.Chip.Device, err)
 		os.Exit(1)
