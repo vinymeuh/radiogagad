@@ -10,7 +10,7 @@ import (
 	"time"
 
 	gpio "github.com/vinymeuh/chardevgpio"
-	"github.com/vinymeuh/radiogagad/weh001602a"
+	weh001602a "github.com/vinymeuh/go-weh001602a"
 )
 
 const (

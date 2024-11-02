@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/vinymeuh/radiogagad/mpd"
+	mpd "github.com/vinymeuh/go-mpdclient"
 )
 
 // mpdInfo is the format of messages send by mpdFetcher to the main goroutine
