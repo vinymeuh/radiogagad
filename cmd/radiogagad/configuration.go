@@ -32,8 +32,7 @@ type ChipPinout struct {
 }
 
 type MPDClient struct {
-	Server           string   `yaml:"host"`
-	StartupPlaylists []string `yaml:"startup_playlists"`
+	Server string `yaml:"host"`
 }
 
 func defaultConfiguration() configuration {

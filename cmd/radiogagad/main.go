@@ -60,7 +60,7 @@ func main() {
 	go powerButton(chip, config.Chip.BootOk, config.Chip.Shutdown, config.Chip.SoftShutdown, logger)
 
 	// launches the goroutine responsible to start playback of a playlist
-	go mpdStarter(config.MPD.Server, config.MPD.StartupPlaylists, logger)
+	// go mpdStarter(config.MPD.Server, config.MPD.StartupPlaylists, logger)
 
 	// launches the goroutine responsible to fetch information from MPD
 	var mpdChan = make(chan mpdInfo, 1) // used to retrieve data from MPDFetcher
